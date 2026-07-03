@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="description" content="Nutritilious — order fresh home-cooked meals, thalis and tiffins from local kitchens near you." />
+  <meta name="theme-color" content="#d0342c" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23d0342c'/%3E%3Ctext x='50' y='68' font-size='58' font-family='Arial' font-weight='900' fill='white' text-anchor='middle'%3EN%3C/text%3E%3C/svg%3E" />
+  <title>Nutritilious</title>
+  <script>
+    (function(){
+      function makeIcon(size){
+        try{
+          var c=document.createElement('canvas');c.width=size;c.height=size;
+          var ctx=c.getContext('2d');
+          ctx.fillStyle='#d0342c';ctx.beginPath();ctx.arc(size/2,size/2,size/2,0,Math.PI*2);ctx.fill();
+          ctx.fillStyle='#fff';ctx.font='900 '+Math.round(size*0.55)+'px Arial,sans-serif';
+          ctx.textAlign='center';ctx.textBaseline='middle';
+          ctx.fillText('N',size/2,size/2+size*0.03);
+          return c.toDataURL('image/png');
+        }catch(e){return ''}
+      }
+      var icon192=makeIcon(192),icon512=makeIcon(512);
+      if(icon192){
+        var appleIcon=document.createElement('link');appleIcon.rel='apple-touch-icon';appleIcon.href=icon192;document.head.appendChild(appleIcon);
+      }
+      try{
+        var manifest={name:'Nutritilious',short_name:'Nutritilious',description:'Order fresh home-cooked meals near you',start_url:'.',display:'standalone',background_color:'#ffffff',theme_color:'#d0342c',icons:[{src:icon192,sizes:'192x192',type:'image/png'},{src:icon512,sizes:'512x512',type:'image/png'}]};
+        var manifestBlob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+        var manifestLink=document.createElement('link');manifestLink.rel='manifest';manifestLink.href=URL.createObjectURL(manifestBlob);document.head.appendChild(manifestLink);
+      }catch(e){}
+      // Service worker needs to be served over http(s), not file:// — registers only when that's possible, and never breaks the page if it isn't.
+      if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')){
+        window.addEventListener('load', function(){
+          navigator.serviceWorker.register('best-sw.js').catch(function(){});
+        });
+      }
+    })();
+  </script>
+  <style>
+
+    * { margin:0; padding:0; box-sizing:border-box; font-family:Inter,-apple-system,BlinkMacSystemFont,Arial,sans-serif; -webkit-tap-highlight-color:transparent; }
+    html, body { width:100%; min-height:100%; overflow-x:hidden; overflow-y:auto; touch-action:pan-y; }
+    button, input, textarea { font:inherit; outline:0; }
+    button { border:0; background:none; cursor:pointer; user-select:none; touch-action:manipulation; }
+    #page-home { background:#f3f3f3; color:#1c1c1c; }
+    #page-help { background:#f3f3f3; color:#171717; }
+
+#page-home button, #page-home input {font:inherit;outline:0}
+#page-home button {border:0;background:none;cursor:pointer;user-select:none;touch-action:manipulation}
+#page-home .app {max-width:430px;min-height:100vh;margin:auto;background:#fff;padding-bottom:105px}
+#page-home .header {position:sticky;top:0;z-index:50;padding:14px 15px;background:#fff;border-bottom:1px solid #f1f1f1}
+#page-home .top-row, #page-home .search-wrap, #page-home .name-row, #page-home .card-foot, #page-home .section-head, #page-home .notify-head {display:flex;align-items:center}
+#page-home .top-row, #page-home .section-head, #page-home .card-foot {justify-content:space-between}
+#page-home .location-btn {display:flex;align-items:center;gap:5px;text-align:left;min-width:0}
+#page-home .pin {width:34px;height:34px;color:#d0342c;display:grid;place-items:center}
+#page-home .pin svg {width:30px;height:30px;fill:currentColor}
+#page-home .location-title {display:flex;align-items:center;gap:4px;font-size:16px;font-weight:800}
+#page-home .location-title svg {width:13px;height:13px;stroke:#111;stroke-width:3;fill:none}
+#page-home .location-sub {display:block;max-width:245px;margin-top:4px;color:#696969;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#page-home .notification-btn {width:38px;height:38px;display:grid;place-items:center;border-radius:50%;background:#f5f5f5}
+#page-home .notification-btn svg, #page-home .nav-item svg, #page-home .filter svg, #page-home .notify-back svg, #page-home .empty-icon svg, #page-home .profile-v2-field svg, #page-home .profile-v2-menu-icon svg {stroke:currentColor;fill:none;stroke-linecap:round;stroke-linejoin:round}
+#page-home .notification-btn svg {width:24px;height:24px;stroke-width:2.35}
+#page-home .search-wrap {gap:10px;margin-top:14px}
+#page-home .search-box {height:52px;flex:1;display:flex;align-items:center;padding:0 14px;border:1px solid #eee;border-radius:13px;box-shadow:0 2px 12px rgba(28,28,28,.08)}
+#page-home .search-box svg {width:20px;color:#d0342c}
+#page-home .search-box input {width:100%;border:0;margin-left:10px;font-size:16px}
+#page-home .veg-input {display:none}
+#page-home .veg-toggle {width:64px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #eee;border-radius:13px;box-shadow:0 2px 12px rgba(28,28,28,.06)}
+#page-home .veg-toggle span:first-child {font-size:9.5px;font-weight:800}
+#page-home .switch {position:relative;width:35px;height:20px;margin-top:6px;border-radius:999px;background:#d0342c}
+#page-home .dot {position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #777;transition:.2s}
+#page-home .veg-input:checked+.veg-toggle .switch {background:#26a65b}
+#page-home .veg-input:checked+.veg-toggle .dot {left:17px}
+#page-home main {padding-bottom:24px}
+#page-home .section {margin-top:28px}
+#page-home .section:first-of-type {margin-top:22px}
+#page-home .section-head {padding:0 15px;margin-bottom:15px}
+#page-home .section-title {font-size:22px;font-weight:800;letter-spacing:-.45px}
+#page-home .category-row {display:grid;grid-template-columns:repeat(3,1fr);gap:18px 12px;padding:0 15px}
+#page-home .cat {text-align:center}
+#page-home .cat-img {width:78px;height:78px;margin:auto;overflow:hidden;border-radius:50%;background:#f6f6f6;box-shadow:0 8px 18px rgba(0,0,0,.08)}
+#page-home .cat-img img, #page-home .food-img {width:100%;height:100%;object-fit:cover}
+#page-home .cat-name {margin-top:9px;font-size:12.5px;font-weight:700}
+#page-home .filter-row {display:flex;gap:9px;padding:0 15px;overflow-x:auto;scrollbar-width:none}
+#page-home .filter-row::-webkit-scrollbar {display:none}
+#page-home .filter-row.hide {display:none}
+#page-home .filter {height:36px;display:flex;align-items:center;gap:6px;padding:0 13px;border:1px solid #e8e8e8;border-radius:999px;background:#fff;font-size:12px;font-weight:600;white-space:nowrap}
+#page-home .filter.active {border-color:#d0342c;background:#fdece9;color:#d0342c;font-weight:850}
+#page-home .filter svg {width:15px;stroke-width:2.2}
+#page-home .restaurant-list {display:grid;gap:22px;padding:0 15px}
+#page-home .restaurant-card {overflow:hidden;border-radius:22px;background:#fff;box-shadow:0 8px 28px rgba(0,0,0,.08)}
+#page-home .food-img-wrap {position:relative;height:180px}
+#page-home .food-type, #page-home .discount, #page-home .time {position:absolute}
+#page-home .food-type {left:10px;top:10px;padding:5px 8px;border-radius:999px;background:#267e3e;color:#fff;font-size:9px;font-weight:900}
+#page-home .food-type.nonveg {background:#d0342c}
+#page-home .discount {left:0;bottom:14px;padding:7px 12px 7px 15px;border-radius:0 8px 8px 0;background:#256fef;color:#fff;font-size:13px;font-weight:900}
+#page-home .time {right:10px;bottom:12px;padding:6px 9px;border-radius:8px;background:#fff;font-size:11px;font-weight:800}
+#page-home .card-body {padding:13px}
+#page-home .name {font-size:18px;font-weight:800}
+#page-home .rating {padding:4px 7px;border-radius:6px;background:#267e3e;color:#fff;font-size:12px;font-weight:800}
+#page-home .meta {margin-top:6px;color:#696969;font-size:13px;line-height:1.35}
+#page-home .card-foot {margin-top:11px;padding-top:11px;border-top:1px solid #f0f0f0}
+#page-home .price {font-size:13px;font-weight:700}
+#page-home .distance {color:#777;font-size:12px;font-weight:600}
+#page-home .unavailable-card {display:none;margin:-8px 0 6px;padding:17px 14px;border-radius:18px;background:#fff;text-align:center}
+#page-home .unavailable-card.show {display:block}
+#page-home .unavailable-card h3 {font-size:15.5px;font-weight:850}
+#page-home .unavailable-card p {margin-top:6px;color:#8a8a8a;font-size:11.5px;line-height:1.42}
+#page-home .bottom-nav {position:fixed;left:50%;bottom:0;z-index:100;width:100%;max-width:430px;height:78px;display:grid;grid-template-columns:repeat(5,1fr);padding:8px;border-radius:22px 22px 0 0;background:#fff;box-shadow:0 -8px 24px rgba(0,0,0,.09);transform:translateX(-50%)}
+#page-home .nav-item {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#777;font-size:10px;font-weight:700}
+#page-home .nav-item.active {color:#d0342c;background:#fdece9;border-radius:16px}
+#page-home .nav-item svg {width:22px;height:22px;stroke-width:2.3}
+#page-home .location-sheet, #page-home .profile-language-sheet, #page-home .filter-sheet {position:fixed;inset:0;z-index:300;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.34)}
+#page-home .location-sheet.show, #page-home .profile-language-sheet.show, #page-home .filter-sheet.show {display:flex}
+#page-home .location-panel, #page-home .profile-language-panel, #page-home .filter-panel {width:100%;max-width:430px;padding:18px 16px 22px;border-radius:24px 24px 0 0;background:#fff}
+#page-home .location-panel-head, #page-home .profile-language-head, #page-home .filter-panel-head {display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+#page-home .location-panel-title, #page-home .profile-language-head h2, #page-home .filter-panel-title {font-size:20px;font-weight:900}
+#page-home .location-close, #page-home .profile-language-close, #page-home .filter-close {width:34px;height:34px;border-radius:50%;background:#f5f5f5;font-size:22px}
+#page-home .location-close {display:none}
+#page-home .location-access-btn {width:100%;height:48px;margin:4px 0 14px;border-radius:15px;background:#d0342c;color:#fff;font-size:14px;font-weight:950;box-shadow:0 8px 18px rgba(208,52,44,.22)}
+#page-home .location-access-btn.hidden {display:none}
+#page-home .detected-location {margin:4px 0 12px;padding:12px 13px;border:1px solid #ffd9de;border-radius:15px;background:#fdece9}
+#page-home .detected-location.hidden, #page-home .manual-address.hidden {display:none}
+#page-home .detected-location small {display:block;margin-bottom:4px;color:#d0342c;font-size:11px;font-weight:950}
+#page-home .detected-location strong {display:block;color:#171717;font-size:13px;font-weight:900;line-height:1.35}
+#page-home .manual-address {margin-top:14px;padding-top:14px;border-top:1px solid #eee}
+#page-home .manual-title {font-size:12px;font-weight:900;color:#444;margin-bottom:8px}
+#page-home .address-input {width:100%;height:45px;margin-top:8px;padding:0 12px;border:1px solid #e8e8e8;border-radius:12px;background:#fff;font-size:13px}
+#page-home .save-address-btn {width:100%;height:46px;margin-top:10px;border-radius:13px;background:#1c1c1c;color:#fff;font-size:14px;font-weight:900}
+#page-home .location-status {margin-top:12px;color:#696969;font-size:12px;line-height:1.4}
+#page-home .filter-panel {max-height:88vh;overflow-y:auto}
+#page-home .filter-group {margin-top:16px}
+#page-home .filter-group-title {font-size:13px;font-weight:950;color:#222;margin-bottom:10px}
+#page-home .filter-options {display:flex;flex-wrap:wrap;gap:9px}
+#page-home .filter-option {height:36px;padding:0 13px;border:1px solid #e8e8e8;border-radius:999px;background:#fff;color:#333;font-size:12px;font-weight:750}
+#page-home .filter-option.active {border-color:#d0342c;background:#fdece9;color:#d0342c}
+#page-home .filter-actions {display:flex;gap:10px;margin-top:18px}
+#page-home .filter-reset, #page-home .filter-apply {height:44px;flex:1;border-radius:14px;font-size:14px;font-weight:950}
+#page-home .filter-reset {background:#f5f5f5;color:#111}
+#page-home .filter-apply {background:#d0342c;color:#fff}
+#page-home .notification-page {position:fixed;inset:0;z-index:210;display:none;background:#fff}
+#page-home .notification-page.show {display:block}
+#page-home .notification-screen {max-width:430px;min-height:100vh;margin:auto;padding:16px;background:#fff}
+#page-home .notify-head {height:56px;gap:12px;border-bottom:1px solid #eee;margin:0 -16px;padding:0 16px}
+#page-home .notify-back {width:42px;height:42px;border-radius:50%;background:#f6f6f6;display:grid;place-items:center}
+#page-home .notify-back svg {width:22px;stroke-width:2.6}
+#page-home .notify-title {font-size:22px;font-weight:900}
+#page-home .empty-notify {height:calc(100vh - 112px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transform:translateY(-18px)}
+#page-home .empty-icon {width:64px;height:64px;display:grid;place-items:center;border-radius:22px;background:#fdece9;color:#d0342c;margin-bottom:14px}
+#page-home .empty-icon svg {width:30px;stroke-width:2.1}
+#page-home .empty-notify h2 {font-size:18px;font-weight:850}
+#page-home .profile-v2-screen {max-width:430px;height:100vh;margin:auto;overflow:hidden;background:#f7f7f7;display:flex;flex-direction:column}
+#page-home .profile-v2-screen .notify-head {height:72px;flex-shrink:0;margin:0;padding:16px 16px 0;background:#fff}
+#page-home .profile-v2-content {flex:1;min-height:0;padding:12px 14px 10px;display:flex;flex-direction:column;gap:10px}
+#page-home .profile-v2-form-card, #page-home .profile-v2-menu-card {border-radius:22px;background:#fff;box-shadow:0 8px 24px rgba(0,0,0,.07)}
+#page-home .profile-v2-form-card {padding:13px}
+#page-home .profile-v2-form-card h2 {margin-bottom:10px;font-size:17px;font-weight:950;letter-spacing:-.3px}
+#page-home .profile-v2-group {margin-bottom:9px}
+#page-home .profile-v2-group label {display:block;margin-bottom:5px;color:#555;font-size:11px;font-weight:850}
+#page-home .profile-v2-field {height:43px;display:flex;align-items:center;gap:10px;padding:0 12px;border:1px solid #eee;border-radius:14px;background:#fafafa}
+#page-home .profile-v2-field.locked {background:#f3f3f3}
+#page-home .profile-v2-field svg {width:17px;height:17px;flex-shrink:0;stroke:#d0342c;stroke-width:2.3}
+#page-home .profile-v2-field input {width:100%;border:0;background:transparent;color:#171717;font-size:14px;font-weight:750}
+#page-home .profile-v2-field input:disabled {opacity:1;color:#626262;-webkit-text-fill-color:#626262}
+#page-home .profile-v2-field input::placeholder {color:#999;font-weight:650}
+#page-home .profile-v2-save {width:100%;height:43px;margin-top:10px;border-radius:15px;background:#d0342c;color:#fff;font-size:14px;font-weight:950;box-shadow:0 8px 16px rgba(208,52,44,.22)}
+#page-home .profile-v2-save.edit-mode {background:#171717;box-shadow:0 8px 18px rgba(0,0,0,.16)}
+#page-home .profile-v2-menu-row {width:100%;min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;border-bottom:1px solid #f0f0f0;text-align:left}
+#page-home .profile-v2-menu-row:last-child {border-bottom:0}
+#page-home .profile-v2-menu-left {display:flex;align-items:center;gap:12px;min-width:0}
+#page-home .profile-v2-menu-icon {width:38px;height:38px;flex-shrink:0;display:grid;place-items:center;border-radius:14px;background:#fdece9;color:#d0342c}
+#page-home .profile-v2-menu-icon svg {width:20px;height:20px;stroke-width:2.3}
+#page-home .profile-v2-menu-row strong {display:block;color:#171717;font-size:14px;font-weight:950}
+#page-home .profile-v2-menu-row small {display:block;margin-top:3px;color:#777;font-size:11px;font-weight:700}
+#page-home .profile-v2-arrow {color:#bbb;font-size:23px;font-weight:900}
+#page-home .profile-v2-logout {height:48px;margin-top:0;flex-shrink:0;border-radius:17px;background:#171717;color:#fff;font-size:15px;font-weight:950;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+#page-home .profile-language-choice {width:100%;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 15px;margin-top:10px;border-radius:17px;background:#f7f7f7;color:#171717;font-size:15px;font-weight:900}
+#page-home .profile-language-choice.active {background:#fdece9;color:#d0342c;border:1px solid #f3c2ba}
+#page-home .profile-language-check {width:22px;height:22px;display:none;place-items:center;border-radius:50%;background:#d0342c;color:#fff;font-size:13px;font-weight:950}
+#page-home .profile-language-choice.active .profile-language-check {display:grid}
+#page-login button, #page-login input {font:inherit;outline:none}
+#page-login button {border:0;background:none;cursor:pointer;touch-action:manipulation}
+#page-login .login-page {width:100%;max-width:430px;height:100svh;margin:auto;background:#fff;overflow:hidden;display:flex;flex-direction:column}
+#page-login .login-top {background:#f6f7f9;padding:100px 22px 22px}
+#page-login .login-title {font-size:21px;font-weight:900;letter-spacing:2px}
+#page-login .login-subtitle {margin-top:9px;color:#6f7177;font-size:15px}
+#page-login .login-body {flex:1;padding:24px 22px 18px;display:flex;flex-direction:column}
+#page-login .field-label {color:#73757d;font-size:13px;font-weight:800;letter-spacing:1.4px}
+#page-login .phone-row {height:54px;display:flex;align-items:center;border-bottom:1.5px solid #d7d7d7}
+#page-login .country-code {display:flex;align-items:center;gap:7px;color:#444;font-size:17px;font-weight:650;margin-right:13px}
+#page-login .dash {color:#555;font-size:19px;font-weight:650;margin-right:13px}
+#page-login .phone-input {flex:1;border:0;color:#111;font-size:21px;font-weight:700;background:transparent}
+#page-login .continue-btn, #page-login .verify-btn {width:100%;height:54px;margin-top:24px;background:#8b0000;color:#fff;font-size:15px;font-weight:900;letter-spacing:2px}
+#page-login .verify-btn {margin-top:12px}
+#page-login .login-msg {min-height:17px;margin-top:8px;color:#d0342c;font-size:12px;font-weight:700;line-height:1.35}
+#page-login .terms {margin-top:5px;color:#3f4148;font-size:14px;line-height:1.45}
+#page-login .terms strong {color:#111}
+#page-login .or-row {display:flex;align-items:center;gap:12px;margin:18px 0 14px;color:#9a9a9a;font-size:12px;font-weight:800;text-transform:uppercase}
+#page-login .or-row:before, #page-login .or-row:after {content:"";flex:1;height:1px;background:#ececec}
+#page-login .google-btn {width:100%;height:50px;display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid #ddd;background:#fff;color:#111;font-size:14px;font-weight:850}
+#page-login .google-icon {width:22px;height:22px}
+#page-login .skip-btn, #page-login .text-btn {width:100%;margin-top:15px;color:#555;font-size:14px;font-weight:850;text-align:center}
+#page-login .otp-box {margin-top:14px}
+#page-login .otp-input {width:100%;height:50px;padding:0 14px;border:1.5px solid #ddd;background:#fff;font-size:20px;font-weight:800;text-align:center;letter-spacing:4px}
+#page-login .otp-mode .terms, #page-login .otp-mode .or-row, #page-login .otp-mode .google-btn {display:none}
+#page-login #recaptcha-container {height:0;overflow:hidden}
+#page-help button, #page-help input, #page-help textarea {font:inherit;outline:none}
+#page-help button {border:0;background:none;cursor:pointer;touch-action:manipulation}
+#page-help .app {width:100%;max-width:430px;min-height:100vh;margin:auto;background:#fff;padding-bottom:24px}
+#page-help .top-bar {position:sticky;top:0;z-index:50;height:70px;display:flex;align-items:center;gap:12px;padding:14px 16px;background:#fff;border-bottom:1px solid #eee}
+#page-help .back-btn {width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:#f6f6f6;color:#171717;flex-shrink:0}
+#page-help .back-btn svg, #page-help .contact-icon svg {stroke:currentColor;fill:none;stroke-linecap:round;stroke-linejoin:round}
+#page-help .back-btn svg {width:22px;height:22px;stroke-width:2.7}
+#page-help .top-title {font-size:22px;font-weight:900;letter-spacing:-.4px}
+#page-help .section {padding:22px 16px 0}
+#page-help .section:first-child {padding-top:18px}
+#page-help .section-title {font-size:18px;font-weight:950;letter-spacing:-.35px;margin-bottom:12px}
+#page-help .contact-card, #page-help .form-card, #page-help .faq-card {border-radius:24px;background:#fff;border:1px solid #eee;box-shadow:0 8px 24px rgba(0,0,0,.06);overflow:hidden}
+#page-help .contact-row {width:100%;min-height:62px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #f1f1f1;text-align:left}
+#page-help .contact-row:last-child {border-bottom:0}
+#page-help .contact-left {display:flex;align-items:center;gap:12px;min-width:0}
+#page-help .contact-icon {width:40px;height:40px;display:grid;place-items:center;flex-shrink:0;border-radius:15px;background:#fdece9;color:#8b0000}
+#page-help .contact-icon svg {width:21px;height:21px;stroke-width:2.4}
+#page-help .contact-row strong {display:block;color:#171717;font-size:14px;font-weight:950}
+#page-help .arrow {color:#b4b4b4;font-size:24px;font-weight:900;flex-shrink:0}
+#page-help .form-card {padding:15px;overflow:visible}
+#page-help .input-group {margin-bottom:13px}
+#page-help .input-group label {display:block;margin-bottom:7px;color:#555;font-size:12px;font-weight:900}
+#page-help .issue-select {position:relative}
+#page-help .issue-trigger {width:100%;height:48px;display:flex;align-items:center;justify-content:flex-start;gap:8px;padding:0 13px;border:1px solid #e7e7e7;border-radius:15px;background:#fafafa;color:#8f8f8f;font-size:14px;font-weight:800;text-align:left}
+#page-help .issue-trigger.selected {color:#171717}
+#page-help .issue-arrow {width:9px;height:9px;border-right:2.3px solid #8b0000;border-bottom:2.3px solid #8b0000;transform:translateY(-2px) rotate(45deg);transition:.18s}
+#page-help .issue-select.open .issue-arrow {transform:translateY(2px) rotate(225deg)}
+#page-help .issue-menu {position:absolute;left:0;right:0;top:56px;z-index:20;display:none;padding:7px;border:1px solid #eeeeee;border-radius:18px;background:#fff;box-shadow:0 14px 32px rgba(0,0,0,.14)}
+#page-help .issue-select.open .issue-menu {display:block}
+#page-help .issue-item {width:100%;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 11px;border-radius:13px;color:#555;font-size:13px;font-weight:850;text-align:left}
+#page-help .issue-item+.issue-item {margin-top:2px}
+#page-help .issue-item.active {background:#fdece9;color:#8b0000}
+#page-help .issue-check {width:18px;height:18px;display:none;place-items:center;border-radius:50%;background:#8b0000;color:#fff;font-size:11px;font-weight:950}
+#page-help .issue-item.active .issue-check {display:grid}
+#page-help .input-group input, #page-help .input-group textarea {width:100%;border:1px solid #e7e7e7;border-radius:15px;background:#fafafa;color:#171717;font-size:14px;font-weight:700}
+#page-help .input-group input::placeholder, #page-help .input-group textarea::placeholder {color:#8f8f8f}
+#page-help .input-group input {height:48px;padding:0 13px}
+#page-help .input-group textarea {min-height:105px;resize:none;padding:13px;line-height:1.45}
+#page-help .submit-btn {width:100%;height:50px;margin-top:4px;border-radius:16px;background:#8b0000;color:#fff;font-size:14px;font-weight:950;letter-spacing:.2px;box-shadow:0 10px 20px rgba(139,0,0,.22)}
+#page-help .submit-btn:disabled {opacity:.65}
+#page-help .ticket-msg {min-height:18px;margin-top:11px;color:#267e3e;font-size:12px;font-weight:800;line-height:1.4;text-align:center}
+#page-help .faq-item {border-bottom:1px solid #f1f1f1}
+#page-help .faq-item:last-child {border-bottom:0}
+#page-help .faq-question {width:100%;min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;text-align:left}
+#page-help .faq-question span:first-child {color:#171717;font-size:13.5px;font-weight:950;line-height:1.3}
+#page-help .faq-plus {width:24px;height:24px;display:grid;place-items:center;flex-shrink:0;border-radius:50%;background:#f6f6f6;color:#8b0000;font-size:18px;font-weight:950}
+#page-help .faq-answer {display:none;padding:0 14px 14px;color:#777;font-size:12px;line-height:1.5;font-weight:650}
+#page-help .faq-item.open .faq-answer {display:block}
+#page-help .faq-item.open .faq-plus {background:#8b0000;color:#fff}
+#page-help .safe-note {margin-top:12px;padding:13px;border-radius:18px;background:#fff7e6;color:#6b4b00;font-size:12px;line-height:1.45;font-weight:700}
+.network-banner {position:fixed;top:0;left:50%;z-index:999;width:100%;max-width:430px;padding:9px 14px;background:#1c1c1c;color:#fff;font-size:12px;font-weight:800;text-align:center;transform:translate(-50%,-100%);transition:transform .25s ease;}
+.network-banner.show {transform:translate(-50%,0);}
+
+    /* ============ UX-only additions: motion, scroll lock, skeleton loading (no visual/layout redesign) ============ */
+    html { scroll-behavior:smooth; }
+    body.scroll-locked { overflow:hidden; height:100%; }
+    #page-home .app, #page-help .app { overscroll-behavior-y:contain; }
+    #page-home .location-sheet, #page-home .profile-language-sheet, #page-home .filter-sheet { opacity:0; transition:opacity .22s ease; }
+    #page-home .location-sheet.show, #page-home .profile-language-sheet.show, #page-home .filter-sheet.show { opacity:1; }
+    #page-home .location-panel, #page-home .profile-language-panel, #page-home .filter-panel { transform:translateY(16px); transition:transform .24s cubic-bezier(.22,.68,0,1.1); }
+    #page-home .location-sheet.show .location-panel, #page-home .profile-language-sheet.show .profile-language-panel, #page-home .filter-sheet.show .filter-panel { transform:translateY(0); }
+    #page-home .notification-page { opacity:0; transition:opacity .18s ease; }
+    #page-home .notification-page.show { opacity:1; }
+    #page-home button:active, #page-help button:active { opacity:.72; }
+    #page-home .restaurant-card.skeleton { position:relative; overflow:hidden; }
+    #page-home .restaurant-card.skeleton .food-img-wrap, #page-home .restaurant-card.skeleton .name, #page-home .restaurant-card.skeleton .meta, #page-home .restaurant-card.skeleton .price { background:#eee; color:transparent; border-radius:8px; }
+    #page-home .restaurant-card.skeleton::after { content:""; position:absolute; inset:0; background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.55) 50%,rgba(255,255,255,0) 100%); transform:translateX(-100%); animation:skeleton-sheen 1.3s infinite; }
+    @keyframes skeleton-sheen { to { transform:translateX(100%); } }
+    #page-home .unavailable-card.retry { cursor:pointer; }
+    #page-home .unavailable-card.retry h3 { color:#d0342c; }
+    @media (prefers-reduced-motion:reduce) {
+      html { scroll-behavior:auto; }
+      #page-home .location-sheet, #page-home .profile-language-sheet, #page-home .filter-sheet, #page-home .location-panel, #page-home .profile-language-panel, #page-home .filter-panel, #page-home .notification-page, #page-home .restaurant-card.skeleton::after { transition:none; animation:none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="networkBanner" class="network-banner" role="status" aria-live="polite">You're offline — some content may not load.</div>
+  <div id="root"></div>
+  <script>
+    (function(){
+      var banner=document.getElementById('networkBanner');
+      function update(){ if(banner) banner.classList.toggle('show', !navigator.onLine); }
+      window.addEventListener('online', update);
+      window.addEventListener('offline', update);
+      update();
+    })();
+  </script>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js" crossorigin></script>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+  <script type="text/babel" data-presets="react,env">
+    const { useEffect, useState } = React;
+
+    /* ============ Original page markup, preserved exactly (per page) ============ */
+    const HOME_HTML = `<div class="app">
+    <header class="header">
+      <div class="top-row">
+        <button class="location-btn" id="locationBtn" aria-label="Select delivery location">
+          <span class="pin"><svg viewBox="0 0 24 24"><path d="M12 2.2c-3.8 0-6.9 3.1-6.9 6.9 0 5.2 6.9 12.7 6.9 12.7s6.9-7.5 6.9-12.7c0-3.8-3.1-6.9-6.9-6.9zm0 9.4a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" /></svg></span>
+          <span><span class="location-title"><span id="deliverToText">Deliver to</span><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg></span><span class="location-sub" id="homeLocationText">Select your area</span></span>
+        </button>
+        <button class="notification-btn" id="notificationBtn" aria-label="Notifications"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></svg></button>
+      </div>
+      <div class="search-wrap">
+        <label class="search-box"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.4" fill="none" /><path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" /></svg><input id="searchInput" placeholder="Search, order and enjoy" /></label>
+        <input class="veg-input" id="vegToggle" type="checkbox" />
+        <label class="veg-toggle" for="vegToggle"><span id="onlyVegText">Only Veg</span><span class="switch"><span class="dot"></span></span></label>
+      </div>
+    </header>
+    <main>
+      <section class="section"><div class="section-head"><h2 class="section-title" id="cravingTitle">What are you craving?</h2></div><div class="category-row"><button class="cat"><div class="cat-img"><img src="https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=300&q=80" alt="Breakfast" loading="lazy" decoding="async" /></div><div class="cat-name">Breakfast</div></button><button class="cat"><div class="cat-img"><img src="https://images.unsplash.com/photo-1585937421612-70a008356fbe?auto=format&fit=crop&w=300&q=80" alt="Lunch" loading="lazy" decoding="async" /></div><div class="cat-name">Lunch</div></button><button class="cat"><div class="cat-img"><img src="https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=300&q=80" alt="Dinner" loading="lazy" decoding="async" /></div><div class="cat-name">Dinner</div></button><button class="cat"><div class="cat-img"><img src="https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=300&q=80" alt="Snacks" loading="lazy" decoding="async" /></div><div class="cat-name">Snacks</div></button><button class="cat"><div class="cat-img"><img src="https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=300&q=80" alt="Desserts" loading="lazy" decoding="async" /></div><div class="cat-name">Desserts</div></button><button class="cat"><div class="cat-img"><img src="https://images.unsplash.com/photo-1497534446932-c925b458314e?auto=format&fit=crop&w=300&q=80" alt="Beverages" loading="lazy" decoding="async" /></div><div class="cat-name">Beverages</div></button></div></section>
+      <section class="section"><div class="section-head"><h2 class="section-title" id="suggestedTitle">Suggested for you</h2></div><div class="filter-row" id="filterRow"><button class="filter" data-filter="sheet"><svg viewBox="0 0 24 24"><path d="M4 6h16" /><path d="M7 12h10" /><path d="M10 18h4" /></svg><span>Filters</span></button><button class="filter" data-filter="fast">Fast Delivery</button><button class="filter" data-filter="rating">Rating 4.0+</button><button class="filter" data-filter="veg">Pure Veg</button><button class="filter" data-filter="price">Under ₹150</button></div></section>
+      <section class="section"><div class="restaurant-list"><div class="unavailable-card" id="unavailableMsg"><h3>We are not there yet!</h3><p>Sorry, our services are currently unavailable at this location. We hope to serve you in the future.</p></div></div></section>
+    </main>
+    <nav class="bottom-nav"><button class="nav-item active" id="homeBtn"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" /></svg><span>Home</span></button><button class="nav-item" id="ordersBtn"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z" /><path d="M9 8h6" /><path d="M9 12h6" /><path d="M9 16h4" /></svg><span>Orders</span></button><button class="nav-item" id="cartBtn"><svg viewBox="0 0 24 24"><path d="M6 6h15l-2 8H8L6 6z" /><path d="M6 6 5 3H2" /><circle cx="9" cy="20" r="1.5" /><circle cx="18" cy="20" r="1.5" /></svg><span>Cart</span></button><button class="nav-item" id="subscriptionBtn"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-3-6 3V4z" /></svg><span>Subscription</span></button><button class="nav-item" id="profileBtn"><svg viewBox="0 0 24 24"><path d="M12 12c2.6 0 4.6-2 4.6-4.6S14.6 2.8 12 2.8 7.4 4.8 7.4 7.4 9.4 12 12 12z" /><path d="M4.6 20.2V19c0-3.1 4.2-4.8 7.4-4.8s7.4 1.7 7.4 4.8v1.2" /></svg><span>Profile</span></button></nav>
+  </div>
+
+  <div class="filter-sheet" id="filterSheet"><div class="filter-panel"><div class="filter-panel-head"><h3 class="filter-panel-title">Filters</h3><button class="filter-close" id="filterClose" type="button" aria-label="Close filters">×</button></div><div class="filter-group"><p class="filter-group-title">Sort by</p><div class="filter-options"><button class="filter-option" data-sheet-group="sort" data-sheet-value="recommended">Recommended</button><button class="filter-option" data-sheet-group="sort" data-sheet-value="distance">Nearest first</button><button class="filter-option" data-sheet-group="sort" data-sheet-value="rating">Rating high to low</button><button class="filter-option" data-sheet-group="sort" data-sheet-value="price">Price low to high</button><button class="filter-option" data-sheet-group="sort" data-sheet-value="time">Delivery time</button></div></div><div class="filter-group"><p class="filter-group-title">Meal type</p><div class="filter-options"><button class="filter-option" data-sheet-group="meal" data-sheet-value="breakfast">Breakfast</button><button class="filter-option" data-sheet-group="meal" data-sheet-value="lunch">Lunch</button><button class="filter-option" data-sheet-group="meal" data-sheet-value="dinner">Dinner</button><button class="filter-option" data-sheet-group="meal" data-sheet-value="thali">Thali</button></div></div><div class="filter-group"><p class="filter-group-title">Food preference</p><div class="filter-options"><button class="filter-option" data-sheet-group="pref" data-sheet-value="veg">Pure Veg</button><button class="filter-option" data-sheet-group="pref" data-sheet-value="nonveg">Non-Veg</button><button class="filter-option" data-sheet-group="pref" data-sheet-value="healthy">Healthy</button><button class="filter-option" data-sheet-group="pref" data-sheet-value="homemade">Homemade</button></div></div><div class="filter-group"><p class="filter-group-title">Price</p><div class="filter-options"><button class="filter-option" data-sheet-group="sheetPrice" data-sheet-value="100">Under ₹100</button><button class="filter-option" data-sheet-group="sheetPrice" data-sheet-value="150">Under ₹150</button><button class="filter-option" data-sheet-group="sheetPrice" data-sheet-value="200">Under ₹200</button></div></div><div class="filter-group"><p class="filter-group-title">Distance</p><div class="filter-options"><button class="filter-option" data-sheet-group="distance" data-sheet-value="1">Within 1 km</button><button class="filter-option" data-sheet-group="distance" data-sheet-value="3">Within 3 km</button><button class="filter-option" data-sheet-group="distance" data-sheet-value="5">Within 5 km</button></div></div><div class="filter-actions"><button class="filter-reset" id="filterReset" type="button">Reset</button><button class="filter-apply" id="filterApply" type="button">Apply</button></div></div></div>
+  <div class="location-sheet" id="locationSheet"><div class="location-panel"><div class="location-panel-head"><h3 class="location-panel-title">Select location</h3><button class="location-close" id="closeLocation" aria-label="Close">×</button></div><button class="location-access-btn" id="allowLocationBtn" type="button">Give location access</button><div class="detected-location hidden" id="detectedLocationBox"><small>Detected location</small><strong id="detectedLocationText"></strong></div><div class="manual-address hidden" id="manualAddressBox"><p class="manual-title">Add exact address</p><input class="address-input" id="houseInput" placeholder="House / Flat / Floor" /><input class="address-input" id="streetInput" placeholder="Street / Area / Landmark" /><button class="save-address-btn" id="saveAddress" type="button">Save address</button></div><p class="location-status" id="locationStatus">Tap Give location access to detect your area.</p></div></div>
+
+  <section class="notification-page" id="notificationPage"><div class="notification-screen"><div class="notify-head"><button class="notify-back" data-close="notificationPage" aria-label="Go back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg></button><h1 class="notify-title">Notifications</h1></div><div class="empty-notify"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></svg></div><h2>No notification yet!</h2></div></div></section>
+  <section class="notification-page" id="ordersPage"><div class="notification-screen"><div class="notify-head"><button class="notify-back" data-close="ordersPage" aria-label="Go back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg></button><h1 class="notify-title">Orders</h1></div><div class="empty-notify"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z" /><path d="M9 8h6" /><path d="M9 12h6" /><path d="M9 16h4" /></svg></div><h2>No orders yet!</h2></div></div></section>
+  <section class="notification-page" id="cartPage"><div class="notification-screen"><div class="notify-head"><button class="notify-back" data-close="cartPage" aria-label="Go back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg></button><h1 class="notify-title">Cart</h1></div><div class="empty-notify"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M6 6h15l-2 8H8L6 6z" /><path d="M6 6 5 3H2" /><circle cx="9" cy="20" r="1.5" /><circle cx="18" cy="20" r="1.5" /></svg></div><h2>Cart is empty</h2></div></div></section>
+  <section class="notification-page" id="subscriptionPage"><div class="notification-screen"><div class="notify-head"><button class="notify-back" data-close="subscriptionPage" aria-label="Go back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg></button><h1 class="notify-title">Subscription</h1></div><div class="empty-notify"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-3-6 3V4z" /></svg></div><h2>Coming soon</h2></div></div></section>
+  <section class="notification-page" id="profilePage"><div class="profile-v2-screen"><div class="notify-head"><button class="notify-back" id="profileBack" type="button" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg></button><h1 class="notify-title">Profile</h1></div><div class="profile-v2-content"><section class="profile-v2-form-card"><h2>Personal Details</h2><div class="profile-v2-group"><label for="profileNameInput">Full Name</label><div class="profile-v2-field"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg><input id="profileNameInput" type="text" placeholder="Enter your name" /></div></div><div class="profile-v2-group"><label for="profilePhoneInput">Phone Number</label><div class="profile-v2-field"><svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7A2 2 0 0 1 22 16.9z" /></svg><input id="profilePhoneInput" type="tel" placeholder="Add phone number" /></div></div><div class="profile-v2-group"><label for="profileEmailInput">Email</label><div class="profile-v2-field"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z" /><path d="M4 7l8 6 8-6" /></svg><input id="profileEmailInput" type="email" placeholder="Add email address" /></div></div><button class="profile-v2-save" id="profileSaveBtn" type="button">Save Details</button></section><section class="profile-v2-menu-card"><button class="profile-v2-menu-row" id="profileLanguageBtn" type="button"><span class="profile-v2-menu-left"><span class="profile-v2-menu-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 0 20" /><path d="M12 2a15.3 15.3 0 0 0 0 20" /></svg></span><span><strong>Language</strong><small id="profileLanguageText">English</small></span></span><span class="profile-v2-arrow">›</span></button><button class="profile-v2-menu-row" id="profileHelpBtn" type="button"><span class="profile-v2-menu-left"><span class="profile-v2-menu-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M9.1 9a3 3 0 1 1 5.8 1c-.7 1.2-2.1 1.7-2.6 2.7" /><path d="M12 17h.01" /></svg></span><span><strong>Help & Support</strong><small>Report issue or contact Nutritilious</small></span></span><span class="profile-v2-arrow">›</span></button></section><button class="profile-v2-logout" id="profileLogoutBtn" type="button">Logout</button></div></div></section>
+  <section class="profile-language-sheet" id="profileLanguageSheet"><div class="profile-language-panel"><div class="profile-language-head"><h2>Choose your language</h2><button class="profile-language-close" id="profileLanguageClose" type="button" aria-label="Close language menu">×</button></div><button class="profile-language-choice active" type="button" data-language="English"><span>English</span><span class="profile-language-check">✓</span></button><button class="profile-language-choice" type="button" data-language="Hindi"><span>Hindi</span><span class="profile-language-check">✓</span></button></div></section>`;
+    const LOGIN_HTML = `<section class="login-page" id="loginPage">
+    <div class="login-top">
+      <h1 class="login-title">LOGIN</h1>
+      <p class="login-subtitle">Enter your phone number to continue</p>
+    </div>
+
+    <div class="login-body">
+      <label class="field-label" for="phoneNumber">PHONE NUMBER</label>
+      <div class="phone-row"><div class="country-code"><span>🇮🇳</span><span>+91</span></div><span class="dash">-</span><input class="phone-input" id="phoneNumber" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel" autofocus /></div>
+      <button class="continue-btn" id="continueLogin">CONTINUE</button>
+      <div class="otp-box" id="otpBox" hidden><input class="otp-input" id="otpInput" type="tel" inputmode="numeric" maxlength="6" placeholder="OTP" autocomplete="one-time-code" /><button class="verify-btn" id="verifyOtpBtn">VERIFY OTP</button><button class="text-btn" id="changePhoneBtn">Change number</button></div>
+      <p class="login-msg" id="loginMsg"></p>
+      <p class="terms">By clicking, I accept the <strong>Terms &amp; Conditions</strong> &amp; <strong>Privacy Policy</strong></p>
+      <div class="or-row">or</div>
+      <button class="google-btn" id="googleLogin"><svg class="google-icon" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.5-5.2l-6.2-5.2C29.3 35.1 26.8 36 24 36c-5.3 0-9.7-3.3-11.3-7.9l-6.5 5C9.5 39.5 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.1 5.6l6.2 5.2C36.9 39.3 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continue with Google</button>
+      <button class="skip-btn" id="skipLogin">Skip for now</button>
+      <div id="recaptcha-container"></div>
+    </div>
+  </section>`;
+    const HELP_HTML = `<div class="app">
+    <header class="top-bar">
+      <button class="back-btn" id="backBtn" aria-label="Go back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg></button>
+      <h1 class="top-title">Help & Support</h1>
+    </header>
+
+    <main>
+      <section class="section">
+        <h2 class="section-title">Raise a Ticket</h2>
+        <form class="form-card" id="supportForm">
+          <div class="input-group">
+            <label>Select Issue</label>
+            <input id="issueType" type="hidden" />
+            <div class="issue-select" id="issueSelect">
+              <button class="issue-trigger" id="issueTrigger" type="button"><span id="issueTriggerText">Select issue type</span><span class="issue-arrow"></span></button>
+              <div class="issue-menu" id="issueMenu">
+                <button class="issue-item" type="button" data-issue="Order issue"><span>Order Issue</span><span class="issue-check">✓</span></button>
+                <button class="issue-item" type="button" data-issue="Payment or refund"><span>Payment</span><span class="issue-check">✓</span></button>
+                <button class="issue-item" type="button" data-issue="Location problem"><span>Location</span><span class="issue-check">✓</span></button>
+                <button class="issue-item" type="button" data-issue="Cook or food quality"><span>Food Quality</span><span class="issue-check">✓</span></button>
+                <button class="issue-item" type="button" data-issue="Subscription query"><span>Subscription</span><span class="issue-check">✓</span></button>
+                <button class="issue-item" type="button" data-issue="Other"><span>Other</span><span class="issue-check">✓</span></button>
+              </div>
+            </div>
+          </div>
+          <div class="input-group"><label for="orderId">Order ID</label><input id="orderId" type="text" placeholder="Order ID (if applicable)" /></div>
+          <div class="input-group"><label for="issueDetails">Describe Your Issue</label><textarea id="issueDetails" placeholder="Write what happened..." required></textarea></div>
+          <button class="submit-btn" id="submitTicketBtn" type="submit">Submit Ticket</button><p class="ticket-msg" id="ticketMsg"></p>
+        </form>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">Contact Support</h2>
+        <div class="contact-card">
+          <button class="contact-row" id="callSupport"><span class="contact-left"><span class="contact-icon"><svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7A2 2 0 0 1 22 16.9z"></path></svg></span><span><strong>Call Support</strong></span></span><span class="arrow">›</span></button>
+          <button class="contact-row" id="whatsappSupport"><span class="contact-left"><span class="contact-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20l1.2-5.4A8.4 8.4 0 1 1 21 11.5z"></path><path d="M8.5 8.8c.3 2.5 2.2 4.4 4.7 4.9"></path></svg></span><span><strong>WhatsApp Support</strong></span></span><span class="arrow">›</span></button>
+          <button class="contact-row" id="emailSupport"><span class="contact-left"><span class="contact-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M4 7l8 6 8-6"></path></svg></span><span><strong>Email Support</strong></span></span><span class="arrow">›</span></button>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">FAQs</h2>
+        <div class="faq-card">
+          <div class="faq-item"><button class="faq-question"><span>How do I cancel an order?</span><span class="faq-plus">+</span></button><p class="faq-answer">Go to Orders, select your active order, and tap Cancel. If food preparation has already started, cancellation may not be available.</p></div>
+          <div class="faq-item"><button class="faq-question"><span>When will I get my refund?</span><span class="faq-plus">+</span></button><p class="faq-answer">Refunds usually take 3-7 working days depending on payment method and bank processing time.</p></div>
+          <div class="faq-item"><button class="faq-question"><span>Why is Nutritilious unavailable in my area?</span><span class="faq-plus">+</span></button><p class="faq-answer">Nutritilious is currently limited to selected service areas. More local cooks and tiffin providers will be added gradually.</p></div>
+          <div class="faq-item"><button class="faq-question"><span>How do I report food quality issues?</span><span class="faq-plus">+</span></button><p class="faq-answer">Use the ticket form and select Food Quality. Add order details and a clear description of the issue.</p></div>
+        </div>
+        <div class="safe-note">For serious health reactions or medical emergencies after eating food, contact a doctor or emergency service first. App support should be used only for order and service complaints.</div>
+      </section>
+    </main>
+  </div>`;
+
+    /* ============ Home page logic (from original index.html, unchanged except navigation) ============ */
+    function initHomePage(navigate) {
+
+    const sheet=document.getElementById('locationSheet'),locationBtn=document.getElementById('locationBtn'),closeLocation=document.getElementById('closeLocation'),allowLocationBtn=document.getElementById('allowLocationBtn'),statusBox=document.getElementById('locationStatus'),homeLocationText=document.getElementById('homeLocationText'),manualAddressBox=document.getElementById('manualAddressBox'),detectedLocationBox=document.getElementById('detectedLocationBox'),detectedLocationText=document.getElementById('detectedLocationText'),houseInput=document.getElementById('houseInput'),streetInput=document.getElementById('streetInput'),saveAddress=document.getElementById('saveAddress'),searchInput=document.getElementById('searchInput'),vegToggle=document.getElementById('vegToggle'),unavailableMsg=document.getElementById('unavailableMsg'),filterRow=document.getElementById('filterRow'),filterSheet=document.getElementById('filterSheet'),filterClose=document.getElementById('filterClose'),filterReset=document.getElementById('filterReset'),filterApply=document.getElementById('filterApply'),notificationBtn=document.getElementById('notificationBtn'),homeBtn=document.getElementById('homeBtn'),ordersBtn=document.getElementById('ordersBtn'),cartBtn=document.getElementById('cartBtn'),subscriptionBtn=document.getElementById('subscriptionBtn'),profileBtn=document.getElementById('profileBtn'),profileBack=document.getElementById('profileBack'),profileHelpBtn=document.getElementById('profileHelpBtn'),profileLogoutBtn=document.getElementById('profileLogoutBtn'),profileNameInput=document.getElementById('profileNameInput'),profilePhoneInput=document.getElementById('profilePhoneInput'),profileEmailInput=document.getElementById('profileEmailInput'),profileSaveBtn=document.getElementById('profileSaveBtn'),profileLanguageBtn=document.getElementById('profileLanguageBtn'),profileLanguageSheet=document.getElementById('profileLanguageSheet'),profileLanguageClose=document.getElementById('profileLanguageClose'),profileLanguageText=document.getElementById('profileLanguageText'),profileLanguageChoices=document.querySelectorAll('.profile-language-choice'),restaurantList=document.querySelector('.restaurant-list');
+    let serviceAreas=[];let baseLocation='',isDetecting=false,locationUnavailable=false,profileDetailsLocked=false,profileSelectedLanguage='English';
+    const activeFilters={fast:false,rating:false,veg:false,price:false};
+    const sheetFilters={sort:'recommended',meal:'',pref:'',sheetPrice:'',distance:''};
+    const API_BASE='https://hapycure-register.onrender.com';
+    const API_ENDPOINTS=['/api/kitchens','/api/admin/kitchen-requests'];
+    const lang={English:{deliverTo:'Deliver to',selectArea:'Select your area',search:'Search, order and enjoy',onlyVeg:'Only Veg',craving:'What are you craving?',suggested:'Suggested for you',cats:['Breakfast','Lunch','Dinner','Snacks','Desserts','Beverages'],filters:['Filters','Fast Delivery','Rating 4.0+','Pure Veg','Under ₹150'],unavailableTitle:'We are not there yet!',unavailableText:'Sorry, our services are currently unavailable at this location. We hope to serve you in the future.',nav:['Home','Orders','Cart','Subscription','Profile'],selectLocation:'Select location',giveAccess:'Give location access',detected:'Detected location',addExact:'Add exact address',house:'House / Flat / Floor',street:'Street / Area / Landmark',saveAddress:'Save address',tap:'Tap Give location access to detect your area.',detecting:'Detecting your location...',detectedMsg:'Location detected. Add house/flat/floor and street/area.',permission:'Location permission is required. Tap Give location access.',unsupported:'Location is not supported on this device.',addHouse:'Please add house/flat or street/area.',savedAddress:'Exact address added for this visit.',notifications:'Notifications',noNotification:'No notification yet!',orders:'Orders',noOrders:'No orders yet!',cart:'Cart',cartEmpty:'Cart is empty',subscription:'Subscription',comingSoon:'Coming soon',profile:'Profile',personal:'Personal Details',fullName:'Full Name',namePh:'Enter your name',phone:'Phone Number',phonePh:'Add phone number',email:'Email',emailPh:'Add email address',saveDetails:'Save Details',editDetails:'Edit Details',language:'Language',languageValue:'English',help:'Help & Support',helpText:'Report issue or contact Nutritilious',logout:'Logout',chooseLang:'Choose your language',langNames:{English:'English',Hindi:'Hindi'}},Hindi:{deliverTo:'डिलीवर करें',selectArea:'अपना क्षेत्र चुनें',search:'सर्च करें, ऑर्डर करें और आनंद लें',onlyVeg:'केवल वेज',craving:'आप क्या खाना चाहेंगे?',suggested:'आपके लिए सुझाव',cats:['नाश्ता','लंच','डिनर','स्नैक्स','मिठाई','पेय'],filters:['फ़िल्टर','फास्ट डिलीवरी','रेटिंग 4.0+','शुद्ध वेज','₹150 से कम'],unavailableTitle:'हम अभी यहां उपलब्ध नहीं हैं!',unavailableText:'माफ़ करें, हमारी सेवा अभी इस लोकेशन पर उपलब्ध नहीं है। हम भविष्य में आपकी सेवा करना चाहेंगे।',nav:['होम','ऑर्डर','कार्ट','सब्सक्रिप्शन','प्रोफाइल'],selectLocation:'लोकेशन चुनें',giveAccess:'लोकेशन एक्सेस दें',detected:'मिली हुई लोकेशन',addExact:'सटीक पता जोड़ें',house:'घर / फ्लैट / फ्लोर',street:'गली / एरिया / लैंडमार्क',saveAddress:'पता सेव करें',tap:'अपना एरिया detect करने के लिए लोकेशन एक्सेस दें।',detecting:'आपकी लोकेशन detect हो रही है...',detectedMsg:'लोकेशन मिल गई। घर/फ्लैट/फ्लोर और गली/एरिया जोड़ें।',permission:'लोकेशन एक्सेस जरूरी है। लोकेशन एक्सेस दें पर टैप करें।',unsupported:'इस डिवाइस पर लोकेशन सपोर्ट नहीं है।',addHouse:'कृपया घर/फ्लैट या गली/एरिया जोड़ें।',savedAddress:'इस विजिट के लिए सटीक पता जुड़ गया।',notifications:'नोटिफिकेशन',noNotification:'अभी कोई नोटिफिकेशन नहीं!',orders:'ऑर्डर',noOrders:'अभी कोई ऑर्डर नहीं!',cart:'कार्ट',cartEmpty:'कार्ट खाली है',subscription:'सब्सक्रिप्शन',comingSoon:'जल्द आ रहा है',profile:'प्रोफाइल',personal:'पर्सनल डिटेल्स',fullName:'पूरा नाम',namePh:'अपना नाम डालें',phone:'फोन नंबर',phonePh:'फोन नंबर जोड़ें',email:'ईमेल',emailPh:'ईमेल एड्रेस जोड़ें',saveDetails:'डिटेल्स सेव करें',editDetails:'डिटेल्स एडिट करें',language:'भाषा',languageValue:'हिंदी',help:'हेल्प और सपोर्ट',helpText:'समस्या रिपोर्ट करें या Nutritilious से संपर्क करें',logout:'लॉगआउट',chooseLang:'अपनी भाषा चुनें',langNames:{English:'अंग्रेज़ी',Hindi:'हिंदी'}}};
+    function debounce(fn,wait){let t;return function(...args){clearTimeout(t);t=setTimeout(()=>fn.apply(this,args),wait)}}
+    function lockScroll(){document.body.classList.add('scroll-locked')}
+    function unlockScroll(){if(!document.querySelector('.location-sheet.show, .filter-sheet.show, .profile-language-sheet.show'))document.body.classList.remove('scroll-locked')}
+    let releaseFocusTrap=null;
+    function trapFocus(panelEl){
+      if(!panelEl)return null;
+      const focusable=panelEl.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])');
+      if(!focusable.length)return null;
+      const first=focusable[0],last=focusable[focusable.length-1];
+      const handler=e=>{if(e.key!=='Tab')return;if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}};
+      panelEl.addEventListener('keydown',handler);
+      setTimeout(()=>first.focus(),50);
+      return ()=>panelEl.removeEventListener('keydown',handler);
+    }
+    function setFocusTrap(panelEl){if(releaseFocusTrap){releaseFocusTrap();releaseFocusTrap=null}releaseFocusTrap=trapFocus(panelEl)}
+    function clearFocusTrap(){if(releaseFocusTrap){releaseFocusTrap();releaseFocusTrap=null}}
+    function L(key){return(lang[profileSelectedLanguage]||lang.English)[key]}
+    function setText(selector,value){const el=document.querySelector(selector);if(el)el.textContent=value}
+    function setList(selector,values){document.querySelectorAll(selector).forEach((el,i)=>{if(values[i])el.textContent=values[i]})}
+    function applyLanguage(){const d=lang[profileSelectedLanguage]||lang.English;document.documentElement.lang=profileSelectedLanguage==='Hindi'?'hi':'en';setText('#deliverToText',d.deliverTo);if(!homeLocationText.textContent.trim()||homeLocationText.textContent===lang.English.selectArea||homeLocationText.textContent===lang.Hindi.selectArea)homeLocationText.textContent=d.selectArea;searchInput.placeholder=d.search;setText('#onlyVegText',d.onlyVeg);setText('#cravingTitle',d.craving);setText('#suggestedTitle',d.suggested);setList('.cat-name',d.cats);document.querySelectorAll('.filter').forEach((el,i)=>{if(i===0){const span=el.querySelector('span');if(span)span.textContent=d.filters[0]}else el.textContent=d.filters[i]});setText('#unavailableMsg h3',d.unavailableTitle);setText('#unavailableMsg p',d.unavailableText);setList('.bottom-nav .nav-item span',d.nav);setText('.location-panel-title',d.selectLocation);allowLocationBtn.textContent=d.giveAccess;setText('#detectedLocationBox small',d.detected);setText('.manual-title',d.addExact);houseInput.placeholder=d.house;streetInput.placeholder=d.street;saveAddress.textContent=d.saveAddress;if(!baseLocation&&!manualAddressBox.classList.contains('hidden'))statusBox.textContent=d.tap;setText('#notificationPage .notify-title',d.notifications);setText('#notificationPage .empty-notify h2',d.noNotification);setText('#ordersPage .notify-title',d.orders);setText('#ordersPage .empty-notify h2',d.noOrders);setText('#cartPage .notify-title',d.cart);setText('#cartPage .empty-notify h2',d.cartEmpty);setText('#subscriptionPage .notify-title',d.subscription);setText('#subscriptionPage .empty-notify h2',d.comingSoon);setText('#profilePage .notify-title',d.profile);setText('.profile-v2-form-card h2',d.personal);setList('.profile-v2-group label',[d.fullName,d.phone,d.email]);profileNameInput.placeholder=d.namePh;profilePhoneInput.placeholder=d.phonePh;profileEmailInput.placeholder=d.emailPh;profileSaveBtn.textContent=profileDetailsLocked?d.editDetails:d.saveDetails;const titles=document.querySelectorAll('.profile-v2-menu-row strong'),subs=document.querySelectorAll('.profile-v2-menu-row small');if(titles[0])titles[0].textContent=d.language;if(titles[1])titles[1].textContent=d.help;if(subs[0])subs[0].textContent=d.languageValue;if(subs[1])subs[1].textContent=d.helpText;profileLanguageText.textContent=d.languageValue;profileLogoutBtn.textContent=d.logout;setText('.profile-language-head h2',d.chooseLang);profileLanguageChoices.forEach(choice=>{const label=choice.querySelector('span:first-child');if(label)label.textContent=d.langNames[choice.dataset.language]||choice.dataset.language})}
+    function clearStoredLocation(){['nutritiliousLiveLocation','nutritiliousDetectedLocation','nutritiliousLatitude','nutritiliousLongitude','nutritiliousHouse','nutritiliousStreet'].forEach(key=>localStorage.removeItem(key))}
+    function cleanAddress(parts){const seen=new Set();return parts.map(part=>String(part||'').trim()).filter(Boolean).filter(part=>{const key=part.toLowerCase();if(seen.has(key))return false;seen.add(key);return true}).slice(0,6).join(', ')}
+    function showDetectedLocation(name){detectedLocationText.textContent=name;detectedLocationBox.classList.remove('hidden')}
+    function hideDetectedLocation(){detectedLocationText.textContent='';detectedLocationBox.classList.add('hidden')}
+    function showManualAddress(){manualAddressBox.classList.remove('hidden')}
+    function hideManualAddress(){manualAddressBox.classList.add('hidden')}
+    function showAccessButton(){allowLocationBtn.classList.remove('hidden')}
+    function hideAccessButton(){allowLocationBtn.classList.add('hidden')}
+    function resetLocationStatusColor(){statusBox.style.color='#696969'}
+    function hasSheetFilters(){return Boolean((sheetFilters.sort&&sheetFilters.sort!=='recommended')||sheetFilters.meal||sheetFilters.pref||sheetFilters.sheetPrice||sheetFilters.distance)}
+    function updateFilterChips(){document.querySelectorAll('.filter[data-filter]').forEach(chip=>{const key=chip.dataset.filter;chip.classList.toggle('active',key==='sheet'?hasSheetFilters():Boolean(activeFilters[key]))})}
+    function updateSheetOptionState(){document.querySelectorAll('.filter-option').forEach(option=>{const group=option.dataset.sheetGroup,value=option.dataset.sheetValue;option.classList.toggle('active',String(sheetFilters[group]||'')===String(value))})}
+    function sortCards(){const list=document.querySelector('.restaurant-list'),cards=[...document.querySelectorAll('.restaurant-card')];cards.sort((a,b)=>{if(sheetFilters.sort==='rating')return Number(b.dataset.rating)-Number(a.dataset.rating);if(sheetFilters.sort==='price')return Number(a.dataset.price)-Number(b.dataset.price);if(sheetFilters.sort==='time')return Number(a.dataset.time)-Number(b.dataset.time);if(sheetFilters.sort==='distance')return Number(a.dataset.distance)-Number(b.dataset.distance);return Number(a.dataset.order)-Number(b.dataset.order)});cards.forEach(card=>list.appendChild(card))}
+    function setLocationName(name){homeLocationText.textContent=name;localStorage.setItem('nutritiliousLiveLocation',name);locationUnavailable=!serviceAreas.some(area=>name.toLowerCase().includes(area));applyFilters()}
+    function applyFilters(){const q=searchInput.value.trim().toLowerCase(),locationText=homeLocationText.textContent.toLowerCase(),selectedArea=serviceAreas.find(area=>locationText.includes(area))||'',cards=[...document.querySelectorAll('.restaurant-card')];let locationMatchedCards=0;cards.forEach(card=>{const cardArea=String(card.dataset.area||'').toLowerCase(),locationMatch=Boolean(selectedArea&&cardArea.split(' ').includes(selectedArea));if(locationMatch)locationMatchedCards++;if(!selectedArea||!locationMatch){card.style.display='none';return}const text=card.innerText.toLowerCase(),isVeg=card.dataset.veg==='true',rating=Number(card.dataset.rating||0),time=Number(card.dataset.time||999),price=Number(card.dataset.price||9999),distance=Number(card.dataset.distance||999),meal=card.dataset.meal||'',pref=card.dataset.pref||'',showSearch=!q||text.includes(q),showVeg=!(vegToggle.checked||activeFilters.veg)||isVeg,showFast=!activeFilters.fast||time<=15,showRating=!activeFilters.rating||rating>=4,showPrice=!activeFilters.price||price<=150,showMeal=!sheetFilters.meal||meal.includes(sheetFilters.meal),showPref=!sheetFilters.pref||pref.includes(sheetFilters.pref),showSheetPrice=!sheetFilters.sheetPrice||price<=Number(sheetFilters.sheetPrice),showDistance=!sheetFilters.distance||distance<=Number(sheetFilters.distance);card.style.display=showSearch&&showVeg&&showFast&&showRating&&showPrice&&showMeal&&showPref&&showSheetPrice&&showDistance?'':'none'});unavailableMsg.classList.toggle('show',!selectedArea||locationMatchedCards===0);filterRow.classList.toggle('hide',!selectedArea||locationMatchedCards===0);sortCards();updateFilterChips();updateSheetOptionState()}
+    function clearAllFilters(){Object.keys(activeFilters).forEach(key=>activeFilters[key]=false);Object.assign(sheetFilters,{sort:'recommended',meal:'',pref:'',sheetPrice:'',distance:''});vegToggle.checked=false;applyFilters()}
+    function formatNominatimAddress(data){const a=data.address||{},street=cleanAddress([a.house_number,a.road||a.pedestrian||a.footway||a.path]),landmark=a.amenity||a.building||a.shop||a.office,area=a.neighbourhood||a.suburb||a.quarter||a.residential||a.locality||a.city_district,city=a.city||a.town||a.village||a.municipality||a.county,state=a.state||a.region,pin=a.postcode,name=cleanAddress([street,landmark,area,city,state,pin]);return name||String(data.display_name||'').split(',').slice(0,6).join(', ')}
+    function formatBigDataAddress(data){return cleanAddress([data.locality,data.city,data.principalSubdivision,data.postcode])}
+    async function reverseGeocode(lat,lon){localStorage.setItem('nutritiliousLatitude',String(lat));localStorage.setItem('nutritiliousLongitude',String(lon));try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=${lat}&lon=${lon}&accept-language=en`);if(r.ok){const n=formatNominatimAddress(await r.json());if(n)return n}}catch(e){}try{const r=await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);if(r.ok){const n=formatBigDataAddress(await r.json());if(n)return n}}catch(e){}return`${lat.toFixed(5)}, ${lon.toFixed(5)}`}
+    function openLocationSheet(){resetLocationStatusColor();sheet.classList.add('show');lockScroll();setFocusTrap(sheet.querySelector('.location-panel'));if(baseLocation){hideAccessButton();showDetectedLocation(baseLocation);showManualAddress();statusBox.textContent=L('detectedMsg')}else{showAccessButton();hideDetectedLocation();hideManualAddress();statusBox.textContent=L('tap')}}
+    function startLiveLocation(){resetLocationStatusColor();if(isDetecting)return;if(!navigator.geolocation){showAccessButton();hideDetectedLocation();hideManualAddress();statusBox.textContent=L('unsupported');return}isDetecting=true;showAccessButton();hideDetectedLocation();hideManualAddress();statusBox.textContent=L('detecting');navigator.geolocation.getCurrentPosition(async pos=>{baseLocation=await reverseGeocode(pos.coords.latitude,pos.coords.longitude);localStorage.setItem('nutritiliousDetectedLocation',baseLocation);setLocationName(baseLocation);showDetectedLocation(baseLocation);hideAccessButton();showManualAddress();statusBox.textContent=L('detectedMsg');isDetecting=false},()=>{showAccessButton();hideDetectedLocation();hideManualAddress();statusBox.textContent=L('permission');isDetecting=false},{enableHighAccuracy:true,timeout:15000,maximumAge:0})}
+    function saveManualFullAddress(){const house=houseInput.value.trim(),street=streetInput.value.trim();if(!house&&!street){statusBox.style.color='#d0342c';statusBox.textContent=L('addHouse');return}localStorage.setItem('nutritiliousHouse',house);localStorage.setItem('nutritiliousStreet',street);const address=cleanAddress([house,street,baseLocation]);setLocationName(address);if(baseLocation)showDetectedLocation(baseLocation);else hideDetectedLocation();statusBox.style.color='#267e3e';statusBox.textContent=L('savedAddress');setTimeout(()=>{sheet.classList.remove('show');unlockScroll();clearFocusTrap()},500)}
+    function tapFeedback(){if(navigator.vibrate)try{navigator.vibrate(8)}catch(e){}}
+    function setActive(btn){document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));btn.classList.add('active');tapFeedback()}
+    function openPage(id,btn){document.querySelectorAll('.notification-page').forEach(p=>p.classList.remove('show'));document.getElementById(id).classList.add('show');setActive(btn)}
+    function closePage(id){document.getElementById(id).classList.remove('show');setActive(homeBtn)}
+    function getCurrentUser(){try{return JSON.parse(localStorage.getItem('nutritiliousUser')||'{}')||{}}catch(error){return{}}}
+    function getProfileAccountId(){const user=getCurrentUser();const id=user.uid||user.email||user.phone||user.provider||localStorage.getItem('nutritiliousAuthType')||'guest';return String(id).replace(/[^a-zA-Z0-9_-]/g,'_')}
+    function profileStorageKey(field){return`nutritiliousProfile_${getProfileAccountId()}_${field}`}
+    function getProfileValue(field){return localStorage.getItem(profileStorageKey(field))||''}
+    function setProfileValue(field,value){localStorage.setItem(profileStorageKey(field),value)}
+    function setProfileDetailsLocked(isLocked){profileDetailsLocked=isLocked;[profileNameInput,profilePhoneInput,profileEmailInput].forEach(input=>{input.disabled=isLocked;input.closest('.profile-v2-field').classList.toggle('locked',isLocked)});profileSaveBtn.classList.toggle('edit-mode',isLocked);applyLanguage()}
+    function setProfileLanguage(language){profileSelectedLanguage=language;profileLanguageChoices.forEach(choice=>choice.classList.toggle('active',choice.dataset.language===language));setProfileValue('Language',language);applyLanguage()}
+    function logout(){clearStoredLocation();localStorage.removeItem('nutritiliousAuthType');localStorage.removeItem('nutritiliousUser');localStorage.setItem('nutritiliousLoggedOut','true');sessionStorage.clear();navigate('login')}
+    function valueFrom(source,keys){for(const key of keys){if(source&&source[key]!==undefined&&source[key]!==null&&source[key]!=='')return source[key]}return''}
+    function getStatus(kitchen){return String(valueFrom(kitchen,['status','approvalStatus','requestStatus'])||'').trim().toLowerCase()}
+    function isApprovedKitchen(kitchen){const status=getStatus(kitchen);return status==='approved'||status==='active'}
+    function payloadArray(payload){if(Array.isArray(payload))return payload;if(Array.isArray(payload.kitchens))return payload.kitchens;if(Array.isArray(payload.approvedKitchens))return payload.approvedKitchens;if(Array.isArray(payload.data))return payload.data;if(Array.isArray(payload.result))return payload.result;return[]}
+    function numberOnly(value){const raw=String(value??'').replace(/[^0-9.]/g,'');return raw?Number(raw):0}
+    function safeText(value){return String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
+    function isVegFood(card){const text=`${card.foodType} ${card.category} ${card.name}`.toLowerCase();return !(text.includes('nonveg')||text.includes('non-veg')||text.includes('chicken')||text.includes('egg')||text.includes('fish'))}
+    function getPhoto(item,kitchen){return item?.photo?.url||item?.photoUrl||item?.image||item?.imageUrl||kitchen?.photo?.url||kitchen?.coverPhoto?.url||kitchen?.image||''}
+    function buildFoodCards(kitchens){const cards=[];kitchens.filter(isApprovedKitchen).forEach(kitchen=>{const kitchenName=valueFrom(kitchen,['kitchenName','businessName','name','title'])||'Approved Kitchen',items=valueFrom(kitchen,['foodItems','menu','foods','items']),foodType=valueFrom(kitchen,['foodType','category','preference']),area=String(valueFrom(kitchen,['city','area','location'])||'').toLowerCase(),distance=valueFrom(kitchen,['distance'])||valueFrom(kitchen,['city','area','location'])||'',time=valueFrom(kitchen,['deliveryTime','time'])||valueFrom(kitchen,['openingTime','startTime'])||'';if(Array.isArray(items)&&items.length){items.forEach((item,index)=>cards.push({name:valueFrom(item,['name','title','foodName'])||'Food item',kitchenName,category:valueFrom(item,['category','foodType'])||foodType,meal:String(valueFrom(item,['mealType','meal','type'])||'').toLowerCase(),foodType,price:valueFrom(item,['price','amount']),rating:valueFrom(kitchen,['rating','averageRating'])||'New',time:time||'—',distance:distance||'Nearby',area,img:getPhoto(item,kitchen),order:cards.length+1}))}else{cards.push({name:kitchenName,kitchenName,category:foodType||'Menu not added',meal:'',foodType,price:valueFrom(kitchen,['price','priceRange']),rating:valueFrom(kitchen,['rating','averageRating'])||'New',time:time||'—',distance:distance||'Nearby',area,img:getPhoto({},kitchen),order:cards.length+1})}});return cards}
+    function renderBackendCard(card){const veg=isVegFood(card),rating=String(card.rating||'New'),ratingText=rating==='New'?'New':`${safeText(rating)} ★`,price=card.price?`₹${safeText(card.price)} for one`:'Price not added',image=card.img?`<img class="food-img" src="${safeText(card.img)}" alt="${safeText(card.name)}" loading="lazy" decoding="async" />`:'';return `<article class="restaurant-card" data-area="${safeText(card.area)}" data-order="${card.order}" data-veg="${veg}" data-rating="${numberOnly(card.rating)||0}" data-time="${numberOnly(card.time)||999}" data-price="${numberOnly(card.price)||9999}" data-distance="${numberOnly(card.distance)||999}" data-meal="${safeText(card.meal)}" data-pref="${veg?'veg healthy homemade':'nonveg homemade'}"><div class="food-img-wrap">${image}<span class="food-type ${veg?'':'nonveg'}">${veg?'VEG':'NON-VEG'}</span><span class="time">${safeText(card.time)}</span></div><div class="card-body"><div class="name-row"><h3 class="name">${safeText(card.name)}</h3><span class="rating">${ratingText}</span></div><p class="meta">${safeText(card.kitchenName)}${card.category?' · '+safeText(card.category):''}</p><div class="card-foot"><span class="price">${price}</span><span class="distance">${safeText(card.distance)}</span></div></div></article>`}
+    function showFoodSkeleton(){document.querySelectorAll('.restaurant-card').forEach(card=>card.remove());const skeletons=Array.from({length:3},()=>'<article class="restaurant-card skeleton" data-order="0"><div class="food-img-wrap"></div><div class="card-body"><div class="name-row"><h3 class="name">Loading name</h3></div><p class="meta">Loading details</p><div class="card-foot"><span class="price">Loading price</span></div></div></article>').join('');restaurantList.insertAdjacentHTML('beforeend',skeletons);unavailableMsg.classList.remove('show','retry')}
+    function clearFoodSkeleton(){document.querySelectorAll('.restaurant-card.skeleton').forEach(card=>card.remove())}
+    function showLoadRetry(){clearFoodSkeleton();unavailableMsg.querySelector('h3').textContent='Could not load menu';unavailableMsg.querySelector('p').textContent='Check your internet connection and tap here to try again.';unavailableMsg.classList.add('show','retry');filterRow.classList.add('hide')}
+    function resetUnavailableText(){const d=lang[profileSelectedLanguage]||lang.English;unavailableMsg.querySelector('h3').textContent=d.unavailableTitle;unavailableMsg.querySelector('p').textContent=d.unavailableText;unavailableMsg.classList.remove('retry')}
+    async function loadApprovedFood(){showFoodSkeleton();try{let kitchens=[],anySuccess=false;for(const endpoint of API_ENDPOINTS){try{const response=await fetch(API_BASE+endpoint);if(!response.ok)continue;anySuccess=true;const payload=await response.json();kitchens=payloadArray(payload).filter(isApprovedKitchen);if(kitchens.length)break}catch(error){}}clearFoodSkeleton();const cards=buildFoodCards(kitchens);if(!cards.length&&!anySuccess){showLoadRetry();return}resetUnavailableText();document.querySelectorAll('.restaurant-card').forEach(card=>card.remove());restaurantList.insertAdjacentHTML('beforeend',cards.map(renderBackendCard).join(''));serviceAreas=[...new Set(cards.map(card=>card.area).filter(Boolean).flatMap(area=>area.split(/[ ,]+/).filter(Boolean)))];applyFilters()}catch(error){clearFoodSkeleton();showLoadRetry()}}
+    const savedLanguage=getProfileValue('Language');if(savedLanguage)setProfileLanguage(savedLanguage);else applyLanguage();
+    const savedLocation=localStorage.getItem('nutritiliousLiveLocation'),savedDetectedLocation=localStorage.getItem('nutritiliousDetectedLocation');if(savedLocation){baseLocation=savedDetectedLocation||savedLocation;setLocationName(savedLocation)}else setTimeout(openLocationSheet,500);
+    const savedHouse=localStorage.getItem('nutritiliousHouse'),savedStreet=localStorage.getItem('nutritiliousStreet');if(savedHouse)houseInput.value=savedHouse;if(savedStreet)streetInput.value=savedStreet;
+    profileNameInput.value=getProfileValue('Name');profilePhoneInput.value=getProfileValue('Phone');profileEmailInput.value=getProfileValue('Email');setProfileDetailsLocked(Boolean(profileNameInput.value||profilePhoneInput.value||profileEmailInput.value));
+    locationBtn.onclick=openLocationSheet;allowLocationBtn.onclick=startLiveLocation;closeLocation.onclick=()=>{sheet.classList.remove('show');unlockScroll();clearFocusTrap()};sheet.onclick=e=>{if(e.target===sheet){sheet.classList.remove('show');unlockScroll();clearFocusTrap()}};filterClose.onclick=()=>{filterSheet.classList.remove('show');unlockScroll();clearFocusTrap()};filterSheet.onclick=e=>{if(e.target===filterSheet){filterSheet.classList.remove('show');unlockScroll();clearFocusTrap()}};filterApply.onclick=()=>{applyFilters();filterSheet.classList.remove('show');unlockScroll();clearFocusTrap()};filterReset.onclick=clearAllFilters;document.querySelectorAll('.filter-option').forEach(option=>{option.onclick=()=>{const group=option.dataset.sheetGroup,value=option.dataset.sheetValue;if(group==='sort'){sheetFilters.sort=value}else sheetFilters[group]=sheetFilters[group]===value?'':value;applyFilters()}});saveAddress.onclick=saveManualFullAddress;vegToggle.onchange=()=>{activeFilters.veg=vegToggle.checked;applyFilters()};searchInput.oninput=debounce(applyFilters,180);document.querySelectorAll('.filter[data-filter]').forEach(chip=>{chip.onclick=()=>{const key=chip.dataset.filter;if(key==='sheet'){filterSheet.classList.add('show');lockScroll();setFocusTrap(filterSheet.querySelector('.filter-panel'));updateSheetOptionState();return}activeFilters[key]=!activeFilters[key];if(key==='veg')vegToggle.checked=activeFilters.veg;applyFilters()}});unavailableMsg.onclick=()=>{if(unavailableMsg.classList.contains('retry'))loadApprovedFood()};notificationBtn.onclick=()=>document.getElementById('notificationPage').classList.add('show');homeBtn.onclick=()=>{document.querySelectorAll('.notification-page').forEach(p=>p.classList.remove('show'));setActive(homeBtn);window.scrollTo({top:0,behavior:'smooth'})};ordersBtn.onclick=()=>openPage('ordersPage',ordersBtn);cartBtn.onclick=()=>openPage('cartPage',cartBtn);subscriptionBtn.onclick=()=>openPage('subscriptionPage',subscriptionBtn);profileBtn.onclick=()=>openPage('profilePage',profileBtn);profileBack.onclick=()=>closePage('profilePage');document.querySelectorAll('[data-close]').forEach(btn=>btn.onclick=()=>closePage(btn.dataset.close));profileHelpBtn.onclick=()=>{navigate('help')};profileLogoutBtn.onclick=logout;profileSaveBtn.onclick=()=>{if(profileDetailsLocked){setProfileDetailsLocked(false);return}setProfileValue('Name',profileNameInput.value.trim());setProfileValue('Phone',profilePhoneInput.value.trim());setProfileValue('Email',profileEmailInput.value.trim());setProfileDetailsLocked(true)};profileLanguageBtn.onclick=()=>{profileLanguageSheet.classList.add('show');lockScroll();setFocusTrap(profileLanguageSheet.querySelector('.profile-language-panel'))};profileLanguageClose.onclick=()=>{profileLanguageSheet.classList.remove('show');unlockScroll();clearFocusTrap()};profileLanguageSheet.onclick=e=>{if(e.target===profileLanguageSheet){profileLanguageSheet.classList.remove('show');unlockScroll();clearFocusTrap()}};profileLanguageChoices.forEach(choice=>choice.onclick=()=>{setProfileLanguage(choice.dataset.language);profileLanguageSheet.classList.remove('show');unlockScroll();clearFocusTrap()});document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(profileLanguageSheet.classList.contains('show')){profileLanguageSheet.classList.remove('show');unlockScroll();clearFocusTrap();return}if(filterSheet.classList.contains('show')){filterSheet.classList.remove('show');unlockScroll();clearFocusTrap();return}if(sheet.classList.contains('show')){sheet.classList.remove('show');unlockScroll();clearFocusTrap();return}const openPage=document.querySelector('.notification-page.show');if(openPage)closePage(openPage.id)});loadApprovedFood();
+  
+    }
+
+    /* ============ Login page logic (from original login.html, unchanged except navigation) ============ */
+    function initLoginPage(navigate) {
+
+    const firebaseConfig={apiKey:"AIzaSyCzD-QcA0K-rSXM5VZYsGB2bE3FEfhkyX0",authDomain:"nutrilious-ceebd.firebaseapp.com",projectId:"nutrilious-ceebd",storageBucket:"nutrilious-ceebd.firebasestorage.app",messagingSenderId:"904909524137",appId:"1:904909524137:web:e20913ddbd9aa3d3856db8"};
+    const loginPage=document.getElementById("loginPage"),phoneNumber=document.getElementById("phoneNumber"),continueLogin=document.getElementById("continueLogin"),googleLogin=document.getElementById("googleLogin"),skipLogin=document.getElementById("skipLogin"),loginMsg=document.getElementById("loginMsg"),otpBox=document.getElementById("otpBox"),otpInput=document.getElementById("otpInput"),verifyOtpBtn=document.getElementById("verifyOtpBtn"),changePhoneBtn=document.getElementById("changePhoneBtn");
+    let auth=null,recaptchaVerifier=null,confirmationResult=null;
+    function initFirebase(){if(auth)return auth;if(!window.firebase)return null;if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);auth=firebase.auth();auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});return auth}
+    function setMsg(m,success=false){loginMsg.style.color=success?"#267e3e":"#d0342c";loginMsg.textContent=m||""}
+    function setLoading(s){continueLogin.disabled=s;googleLogin.disabled=s;skipLogin.disabled=s;verifyOtpBtn.disabled=s}
+    async function cleanupOldProfilePatch(){if('serviceWorker' in navigator){try{const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister()))}catch(e){}}}
+    function goHome(){navigate('home')}
+    function saveUser(type,user){localStorage.setItem('nutritiliousAuthType',type);localStorage.setItem('nutritiliousUser',JSON.stringify({uid:user&&user.uid?user.uid:'',phone:user&&user.phoneNumber?user.phoneNumber:'',email:user&&user.email?user.email:'',isAnonymous:user&&user.isAnonymous?true:false,provider:type}));goHome()}
+    function getAuthError(error){const code=error&&error.code?error.code:'';if(code.includes('operation-not-allowed'))return'Enable Phone, Google, or Anonymous sign-in in Firebase Console.';if(code.includes('unauthorized-domain'))return'Add this Vercel domain in Firebase Authorized domains.';if(code.includes('invalid-phone-number'))return'Enter a valid 10-digit mobile number.';if(code.includes('popup-blocked'))return'Popup blocked. Allow popups and try again.';if(code.includes('too-many-requests'))return'Too many attempts. Try again later.';return error&&error.message?error.message:'Login failed. Check Firebase setup.'}
+    function setupRecaptcha(){const firebaseAuth=initFirebase();if(!firebaseAuth)return null;if(!recaptchaVerifier){recaptchaVerifier=new firebase.auth.RecaptchaVerifier('recaptcha-container',{size:'invisible'},firebaseAuth)}return recaptchaVerifier}
+    async function sendOtp(){const mobile=phoneNumber.value.replace(/\D/g,'');if(mobile.length!==10){setMsg('Enter a valid 10-digit mobile number.');return}const firebaseAuth=initFirebase(),verifier=setupRecaptcha();if(!firebaseAuth||!verifier){localStorage.setItem('nutritiliousProfile',JSON.stringify({phone:'+91'+mobile,updatedAt:new Date().toISOString()}));saveUser('phone',{phoneNumber:'+91'+mobile});return}setLoading(true);setMsg('Sending OTP...',true);try{confirmationResult=await firebaseAuth.signInWithPhoneNumber('+91'+mobile,verifier);otpBox.hidden=false;loginPage.classList.add('otp-mode');continueLogin.style.display='none';setMsg('OTP sent. Please check your SMS.',true);setTimeout(()=>otpInput.focus(),50)}catch(error){setMsg(getAuthError(error))}finally{setLoading(false)}}
+    async function verifyOtp(){const otp=otpInput.value.replace(/\D/g,'');if(otp.length!==6){setMsg('Enter the 6-digit OTP.');return}if(!confirmationResult){setMsg('Send OTP first.');return}setLoading(true);setMsg('Verifying OTP...',true);try{const result=await confirmationResult.confirm(otp);saveUser('phone',result.user)}catch(error){setMsg(getAuthError(error))}finally{setLoading(false)}}
+    async function googleSignIn(){const firebaseAuth=initFirebase();if(!firebaseAuth){saveUser('guest',null);return}setLoading(true);setMsg('Opening Google sign-in...',true);try{const provider=new firebase.auth.GoogleAuthProvider();const result=await firebaseAuth.signInWithPopup(provider);saveUser('google',result.user)}catch(error){setMsg(getAuthError(error))}finally{setLoading(false)}}
+    async function guestLogin(){const firebaseAuth=initFirebase();setLoading(true);try{if(firebaseAuth){const result=await firebaseAuth.signInAnonymously();saveUser('guest',result.user)}else saveUser('guest',null)}catch(error){saveUser('guest',null)}finally{setLoading(false)}}
+    phoneNumber.addEventListener('input',()=>{phoneNumber.value=phoneNumber.value.replace(/\D/g,'').slice(0,10);setMsg('')});phoneNumber.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();if(phoneNumber.value.replace(/\D/g,'').length===10)sendOtp()}});otpInput.addEventListener('input',()=>{otpInput.value=otpInput.value.replace(/\D/g,'').slice(0,6);setMsg('');if(otpInput.value.length===6)verifyOtp()});otpInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();if(otpInput.value.length===6)verifyOtp()}});continueLogin.addEventListener('click',sendOtp);verifyOtpBtn.addEventListener('click',verifyOtp);googleLogin.addEventListener('click',googleSignIn);skipLogin.addEventListener('click',guestLogin);changePhoneBtn.addEventListener('click',()=>{confirmationResult=null;otpBox.hidden=true;loginPage.classList.remove('otp-mode');continueLogin.style.display='block';otpInput.value='';setMsg('')});initFirebase();cleanupOldProfilePatch();
+  
+    }
+
+    /* ============ Help & Support page logic (from original help-support.html, unchanged except navigation) ============ */
+    function initHelpPage(navigate) {
+
+    const SUPPORT_PHONE='7300748429';
+    const SUPPORT_PHONE_INTERNATIONAL='917300748429';
+    const FIREBASE_FALLBACK_CONFIG={projectId:'nutrilious-ceebd'};
+    const backBtn=document.getElementById('backBtn');
+    const supportForm=document.getElementById('supportForm');
+    const submitTicketBtn=document.getElementById('submitTicketBtn');
+    const issueType=document.getElementById('issueType');
+    const issueSelect=document.getElementById('issueSelect');
+    const issueTrigger=document.getElementById('issueTrigger');
+    const issueTriggerText=document.getElementById('issueTriggerText');
+    const issueItems=document.querySelectorAll('.issue-item');
+    const orderId=document.getElementById('orderId');
+    const issueDetails=document.getElementById('issueDetails');
+    const ticketMsg=document.getElementById('ticketMsg');
+    const callSupport=document.getElementById('callSupport');
+    const whatsappSupport=document.getElementById('whatsappSupport');
+    const emailSupport=document.getElementById('emailSupport');
+    let db=null;
+
+    function initFirebase(){
+      if(db)return true;
+      if(!window.firebase)return false;
+      const config=window.NUTRITILIOUS_FIREBASE_CONFIG||FIREBASE_FALLBACK_CONFIG;
+      if(!firebase.apps.length)firebase.initializeApp(config);
+      db=firebase.firestore();
+      return true;
+    }
+
+    function getLocalUser(){
+      try{return JSON.parse(localStorage.getItem('nutritiliousUser')||'{}')||{}}
+      catch(error){return{}}
+    }
+
+    backBtn.onclick=()=>{navigate('home')};
+
+    function setIssue(value){
+      issueType.value=value;
+      const selected=[...issueItems].find(item=>item.dataset.issue===value);
+      issueItems.forEach(item=>item.classList.toggle('active',item.dataset.issue===value));
+      if(selected){issueTriggerText.textContent=selected.querySelector('span').textContent;issueTrigger.classList.add('selected')}
+      else{issueTriggerText.textContent='Select issue type';issueTrigger.classList.remove('selected')}
+    }
+
+    issueTrigger.onclick=event=>{event.stopPropagation();issueSelect.classList.toggle('open')};
+    issueItems.forEach(item=>{item.onclick=()=>{setIssue(item.dataset.issue||'');issueSelect.classList.remove('open')}});
+    document.onclick=event=>{if(!issueSelect.contains(event.target))issueSelect.classList.remove('open')};
+    document.querySelectorAll('.faq-question').forEach(button=>{button.onclick=()=>{const item=button.closest('.faq-item');const open=item.classList.contains('open');document.querySelectorAll('.faq-item').forEach(faq=>{faq.classList.remove('open');faq.querySelector('.faq-plus').textContent='+'});if(!open){item.classList.add('open');item.querySelector('.faq-plus').textContent='−'}}});
+
+    supportForm.onsubmit=async event=>{
+      event.preventDefault();
+      const type=issueType.value.trim();
+      const details=issueDetails.value.trim();
+      const orderValue=orderId.value.trim();
+      if(!type){ticketMsg.style.color='#d0342c';ticketMsg.textContent='Please select issue type.';return}
+      if(details.length<15){ticketMsg.style.color='#d0342c';ticketMsg.textContent='Please describe the issue.';return}
+      if(!initFirebase()){ticketMsg.style.color='#d0342c';ticketMsg.textContent='Firebase failed to load. Please try again.';return}
+      let ticketSubmitted=false;
+      submitTicketBtn.disabled=true;
+      submitTicketBtn.textContent='Submitting Ticket...';
+      ticketMsg.textContent='';
+      try{
+        const ticketId='NUT-'+Date.now().toString().slice(-6);
+        const localUser=getLocalUser();
+        const ticket={ticketId,issueType:type,orderId:orderValue,details,status:'pending',source:'help-support-page',userId:localUser.uid||'',userPhone:localUser.phone||'',userEmail:localUser.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),localCreatedAt:new Date().toISOString()};
+        const saveTicket=db.collection('supportTickets').doc(ticketId).set(ticket);
+        const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),8000));
+        await Promise.race([saveTicket,timeout]);
+        const oldTickets=JSON.parse(localStorage.getItem('nutritiliousSupportTickets')||'[]');
+        oldTickets.unshift({...ticket,createdAt:ticket.localCreatedAt});
+        localStorage.setItem('nutritiliousSupportTickets',JSON.stringify(oldTickets));
+        ticketSubmitted=true;
+        submitTicketBtn.textContent='Submitted';
+        ticketMsg.style.color='#267e3e';
+        ticketMsg.textContent=`Ticket submitted successfully. Your Ticket ID is ${ticketId}.`;
+        supportForm.reset();
+        setIssue('');
+      }catch(error){
+        submitTicketBtn.textContent='Submit Ticket';
+        ticketMsg.style.color='#d0342c';
+        ticketMsg.textContent='Ticket not submitted. Please try again.';
+      }finally{
+        if(ticketSubmitted){setTimeout(()=>{submitTicketBtn.disabled=false;submitTicketBtn.textContent='Submit Ticket'},1400)}
+        else submitTicketBtn.disabled=false;
+      }
+    };
+
+    callSupport.onclick=()=>{window.location.href=`tel:+91${SUPPORT_PHONE}`};
+    whatsappSupport.onclick=()=>{const message=encodeURIComponent('Hi Nutritilious Support, I need help with my order.');window.location.href=`https://wa.me/${SUPPORT_PHONE_INTERNATIONAL}?text=${message}`};
+    emailSupport.onclick=()=>{const subject=encodeURIComponent('Nutritilious Support Request');const body=encodeURIComponent('Hi Nutritilious Support,\n\nI need help with:\n\n');window.location.href=`mailto:support@nutritilious.com?subject=${subject}&body=${body}`};
+    initFirebase();
+  
+    }
+
+    function HomePage({ navigate }) {
+      useEffect(() => {
+        initHomePage(navigate);
+      }, []);
+      return <div id="page-home" dangerouslySetInnerHTML={{ __html: HOME_HTML }} />;
+    }
+
+    function LoginPage({ navigate }) {
+      useEffect(() => {
+        document.body.style.overflowY = 'hidden';
+        initLoginPage(navigate);
+        return () => { document.body.style.overflowY = ''; };
+      }, []);
+      return <div id="page-login" dangerouslySetInnerHTML={{ __html: LOGIN_HTML }} />;
+    }
+
+    function HelpPage({ navigate }) {
+      useEffect(() => {
+        initHelpPage(navigate);
+        return () => { document.onclick = null; };
+      }, []);
+      return <div id="page-help" dangerouslySetInnerHTML={{ __html: HELP_HTML }} />;
+    }
+
+    function App() {
+      const [view, setView] = useState('home');
+      useEffect(() => {
+        if (!window.history.state || !window.history.state.nutriView) {
+          window.history.replaceState({ nutriView: 'home' }, '');
+        }
+        const onPopState = (e) => {
+          setView((e.state && e.state.nutriView) || 'home');
+        };
+        window.addEventListener('popstate', onPopState);
+        return () => window.removeEventListener('popstate', onPopState);
+      }, []);
+      const navigate = (next) => {
+        setView(next);
+        window.history.pushState({ nutriView: next }, '');
+      };
+      if (view === 'help') return <HelpPage navigate={navigate} />;
+      if (view === 'home') return <HomePage navigate={navigate} />;
+      return <LoginPage navigate={navigate} />;
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
