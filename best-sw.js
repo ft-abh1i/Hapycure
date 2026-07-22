@@ -57,6 +57,8 @@ const FIREBASE_LOGIN_LOGIC = `function initLoginPage(navigate) {
 
     const phoneNumber=document.getElementById("phoneNumber"),continueLogin=document.getElementById("continueLogin"),googleLogin=document.getElementById("googleLogin"),loginMsg=document.getElementById("loginMsg");
     const firebaseConfig=window.NUTRITILIOUS_FIREBASE_CONFIG;
+    let signInCompleted=false;
+    let stopAuthListener=null;
 
     function setMsg(message,success=false){
       loginMsg.style.color=success?"#267e3e":"#d0342c";
@@ -119,15 +121,24 @@ const FIREBASE_LOGIN_LOGIC = `function initLoginPage(navigate) {
     }
 
     async function completeGoogleSignIn(user){
+      if(signInCompleted)return;
       if(!user)throw new Error("Google did not return a user account.");
+      signInCompleted=true;
+      if(stopAuthListener){
+        stopAuthListener();
+        stopAuthListener=null;
+      }
       saveSignedInUser(user);
+      sessionStorage.removeItem("nutritiliousGoogleRedirectPending");
       setMsg("Signed in successfully.",true);
       navigate("home");
+      window.history.replaceState({nutriView:"home"},"");
     }
 
     async function startGoogleSignIn(){
       setBusy(true);
       setMsg("Opening Google sign-in...",true);
+      localStorage.removeItem("nutritiliousLoggedOut");
       try{
         const auth=getFirebaseAuth();
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -153,6 +164,7 @@ const FIREBASE_LOGIN_LOGIC = `function initLoginPage(navigate) {
           throw error;
         }
       }catch(error){
+        signInCompleted=false;
         setMsg(friendlyGoogleError(error));
       }finally{
         if(document.getElementById("page-login"))setBusy(false);
@@ -179,13 +191,25 @@ const FIREBASE_LOGIN_LOGIC = `function initLoginPage(navigate) {
 
     try{
       const auth=getFirebaseAuth();
+      stopAuthListener=auth.onAuthStateChanged(user=>{
+        if(user&&localStorage.getItem("nutritiliousLoggedOut")!=="true"){
+          completeGoogleSignIn(user).catch(error=>{
+            signInCompleted=false;
+            setMsg(friendlyGoogleError(error));
+          });
+        }
+      });
+
       auth.getRedirectResult().then(result=>{
         if(result&&result.user){
-          sessionStorage.removeItem("nutritiliousGoogleRedirectPending");
-          completeGoogleSignIn(result.user).catch(error=>setMsg(friendlyGoogleError(error)));
+          completeGoogleSignIn(result.user).catch(error=>{
+            signInCompleted=false;
+            setMsg(friendlyGoogleError(error));
+          });
         }
       }).catch(error=>{
         sessionStorage.removeItem("nutritiliousGoogleRedirectPending");
+        signInCompleted=false;
         setMsg(friendlyGoogleError(error));
       });
     }catch(error){
@@ -194,8 +218,56 @@ const FIREBASE_LOGIN_LOGIC = `function initLoginPage(navigate) {
 
     }`;
 
+const AUTH_AWARE_APP_LOGIC = `function App() {
+      const getInitialView = () => {
+        try {
+          const user = JSON.parse(localStorage.getItem('nutritiliousUser') || '{}') || {};
+          const isGoogleUser = localStorage.getItem('nutritiliousAuthType') === 'google' && Boolean(user.uid || user.email);
+          const explicitlyLoggedOut = localStorage.getItem('nutritiliousLoggedOut') === 'true';
+          return isGoogleUser && !explicitlyLoggedOut ? 'home' : 'login';
+        } catch (error) {
+          return 'login';
+        }
+      };
+
+      const [view, setView] = useState(getInitialView);
+
+      useEffect(() => {
+        const initialView = getInitialView();
+        if (!window.history.state || !window.history.state.nutriView) {
+          window.history.replaceState({ nutriView: initialView }, '');
+        } else if (initialView === 'home' && window.history.state.nutriView === 'login') {
+          window.history.replaceState({ nutriView: 'home' }, '');
+          setView('home');
+        }
+
+        const onPopState = (event) => {
+          const requestedView = (event.state && event.state.nutriView) || getInitialView();
+          const safeView = requestedView === 'login' && getInitialView() === 'home' ? 'home' : requestedView;
+          setView(safeView);
+        };
+
+        window.addEventListener('popstate', onPopState);
+        return () => window.removeEventListener('popstate', onPopState);
+      }, []);
+
+      const navigate = (next) => {
+        setView(next);
+        if (next === 'home' && getInitialView() === 'home') {
+          window.history.replaceState({ nutriView: next }, '');
+        } else {
+          window.history.pushState({ nutriView: next }, '');
+        }
+      };
+
+      if (view === 'help') return <HelpPage navigate={navigate} />;
+      if (view === 'home') return <HomePage navigate={navigate} />;
+      return <LoginPage navigate={navigate} />;
+    }`;
+
 function patchAppShell(html) {
   const loginPattern=/function initLoginPage\(navigate\)\s*\{[\s\S]*?\n\s*\}\n\n\s*\/\* ============ Help & Support page logic/;
+  const appPattern=/function App\(\)\s*\{[\s\S]*?\n\s*\}\n\n\s*const root = ReactDOM\.createRoot/;
 
   return html
     .replace(
@@ -203,6 +275,7 @@ function patchAppShell(html) {
       ''
     )
     .replace(loginPattern,FIREBASE_LOGIN_LOGIC+'\n\n    /* ============ Help & Support page logic')
+    .replace(appPattern,AUTH_AWARE_APP_LOGIC+'\n\n    const root = ReactDOM.createRoot')
     .replace(
       /function logout\(\)\{clearStoredLocation\(\);/,
       'function logout(){try{if(window.firebase&&firebase.apps.length)firebase.auth().signOut().catch(function(){})}catch(error){}clearStoredLocation();'
