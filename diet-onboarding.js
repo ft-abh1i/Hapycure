@@ -6,6 +6,7 @@
   const AUTH_TYPE_KEY = 'nutritiliousAuthType';
   const USER_KEY = 'nutritiliousUser';
   const CUSTOM_ALLERGY_DRAFT_PREFIX = 'nutritiliousCustomAllergiesDraft_';
+  const ROUTINE_DRAFT_PREFIX = 'nutritiliousRoutineDraft_';
   const bodyOverflowBeforeOpen = { value: '' };
 
   const steps = [
@@ -27,9 +28,9 @@
     allergies: [],
     customAllergies: '',
     activityLevel: '',
-    mealsPerDay: '3',
-    wakeTime: '07:00',
-    sleepTime: '23:00',
+    mealsPerDay: '',
+    wakeTime: '',
+    sleepTime: '',
     healthConditions: [],
     notes: ''
   };
@@ -62,14 +63,17 @@
     return CUSTOM_ALLERGY_DRAFT_PREFIX + accountId(getUser());
   }
 
+  function routineDraftKey() {
+    return ROUTINE_DRAFT_PREFIX + accountId(getUser());
+  }
+
   function isEligible() {
     const user = getUser();
     return localStorage.getItem(AUTH_TYPE_KEY) === 'google' && Boolean(user.uid || user.email);
   }
 
   function isComplete() {
-    const user = getUser();
-    return localStorage.getItem(completionKey(user)) === 'true';
+    return localStorage.getItem(completionKey(getUser())) === 'true';
   }
 
   function shouldOpen() {
@@ -77,9 +81,9 @@
   }
 
   function ensureEnhancementStyles() {
-    if (document.getElementById('hpStep3EnhancementStyles')) return;
+    if (document.getElementById('hpOnboardingEnhancementStyles')) return;
     const style = document.createElement('style');
-    style.id = 'hpStep3EnhancementStyles';
+    style.id = 'hpOnboardingEnhancementStyles';
     style.textContent = `
       #${OVERLAY_ID} .hp-food-grid [data-select-value="vegetarian"].selected {
         border-color: #2f9e44 !important;
@@ -118,24 +122,35 @@
         background: #fff;
         box-shadow: 0 0 0 3px rgba(208, 52, 44, .08);
       }
-      #${OVERLAY_ID} .hp-allergy-group.hp-attention {
+      #${OVERLAY_ID} .hp-routine-grid .hp-option-icon {
+        display: none !important;
+      }
+      #${OVERLAY_ID} .hp-routine-grid .hp-option-card {
+        padding-left: 16px;
+      }
+      #${OVERLAY_ID} .hp-attention {
         border-radius: 18px;
         outline: 2px solid rgba(208, 52, 44, .36);
         outline-offset: 8px;
-        animation: hpAllergyAttention .55s ease 2;
+        animation: hpSectionAttention .55s ease 2;
       }
-      @keyframes hpAllergyAttention {
+      #${OVERLAY_ID} .hp-routine-details .hp-input-field.invalid > div {
+        border-color: #d0342c;
+        box-shadow: 0 0 0 3px rgba(208, 52, 44, .08);
+      }
+      @keyframes hpSectionAttention {
         0%, 100% { outline-color: rgba(208, 52, 44, .2); }
-        50% { outline-color: rgba(208, 52, 44, .7); }
+        50% { outline-color: rgba(208, 52, 44, .72); }
       }
     `;
     document.head.appendChild(style);
   }
 
-  function optionCard(group, value, title, description, icon) {
+  function optionCard(group, value, title, description, icon = '') {
+    const iconMarkup = icon ? `<span class="hp-option-icon" aria-hidden="true">${icon}</span>` : '';
     return `
       <button class="hp-option-card" type="button" data-select-group="${group}" data-select-value="${value}">
-        <span class="hp-option-icon" aria-hidden="true">${icon}</span>
+        ${iconMarkup}
         <span class="hp-option-copy"><strong>${title}</strong><small>${description}</small></span>
         <span class="hp-option-check" aria-hidden="true">✓</span>
       </button>`;
@@ -149,10 +164,10 @@
     if (index === 0) {
       return `
         <div class="hp-option-grid hp-goal-grid">
-          ${optionCard('goal', 'lose-weight', 'Lose weight', 'A balanced calorie-deficit plan', '↘')}
-          ${optionCard('goal', 'gain-muscle', 'Gain muscle', 'Protein-focused meals for strength', '↗')}
-          ${optionCard('goal', 'maintain-weight', 'Maintain weight', 'Stay consistent and energetic', '◎')}
-          ${optionCard('goal', 'eat-healthier', 'Eat healthier', 'Improve everyday food choices', '♥')}
+          ${optionCard('goal', 'lose-weight', 'Lose weight', 'A balanced calorie-deficit plan')}
+          ${optionCard('goal', 'gain-muscle', 'Gain muscle', 'Protein-focused meals for strength')}
+          ${optionCard('goal', 'maintain-weight', 'Maintain weight', 'Stay consistent and energetic')}
+          ${optionCard('goal', 'eat-healthier', 'Eat healthier', 'Improve everyday food choices')}
         </div>`;
     }
 
@@ -179,10 +194,10 @@
         <div class="hp-field-group">
           <label class="hp-label">Food preference</label>
           <div class="hp-option-grid hp-food-grid">
-            ${optionCard('dietType', 'vegetarian', 'Vegetarian', 'No meat or fish', '🥗')}
-            ${optionCard('dietType', 'eggetarian', 'Eggetarian', 'Vegetarian meals with eggs', '🥚')}
-            ${optionCard('dietType', 'non-vegetarian', 'Non-vegetarian', 'Includes meat, fish and eggs', '🍗')}
-            ${optionCard('dietType', 'vegan', 'Vegan', 'No animal-derived foods', '🌱')}
+            ${optionCard('dietType', 'vegetarian', 'Vegetarian', 'No meat or fish')}
+            ${optionCard('dietType', 'eggetarian', 'Eggetarian', 'Vegetarian meals with eggs')}
+            ${optionCard('dietType', 'non-vegetarian', 'Non-vegetarian', 'Includes meat, fish and eggs')}
+            ${optionCard('dietType', 'vegan', 'Vegan', 'No animal-derived foods')}
           </div>
         </div>
         <div class="hp-field-group hp-top-gap hp-allergy-group" id="hpAllergySection">
@@ -208,17 +223,17 @@
       return `
         <div class="hp-field-group">
           <label class="hp-label">Activity level</label>
-          <div class="hp-option-grid">
-            ${optionCard('activityLevel', 'sedentary', 'Mostly sitting', 'Little or no regular exercise', '◻')}
-            ${optionCard('activityLevel', 'light', 'Lightly active', 'Exercise 1–3 days a week', '◔')}
-            ${optionCard('activityLevel', 'moderate', 'Moderately active', 'Exercise 3–5 days a week', '◑')}
-            ${optionCard('activityLevel', 'very-active', 'Very active', 'Hard exercise most days', '●')}
+          <div class="hp-option-grid hp-routine-grid">
+            ${optionCard('activityLevel', 'sedentary', 'Mostly sitting', 'Little or no regular exercise')}
+            ${optionCard('activityLevel', 'light', 'Lightly active', 'Exercise 1–3 days a week')}
+            ${optionCard('activityLevel', 'moderate', 'Moderately active', 'Exercise 3–5 days a week')}
+            ${optionCard('activityLevel', 'very-active', 'Very active', 'Hard exercise most days')}
           </div>
         </div>
-        <div class="hp-input-grid hp-top-gap">
-          <label class="hp-input-field"><span>Meals per day</span><div><select id="hpMeals"><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></div></label>
-          <label class="hp-input-field"><span>Wake-up time</span><div><input id="hpWakeTime" type="time" value="07:00"></div></label>
-          <label class="hp-input-field"><span>Sleep time</span><div><input id="hpSleepTime" type="time" value="23:00"></div></label>
+        <div class="hp-input-grid hp-top-gap hp-routine-details" id="hpRoutineDetails">
+          <label class="hp-input-field" data-routine-field="meals"><span>Meals per day</span><div><select id="hpMeals"><option value="">Select</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></div></label>
+          <label class="hp-input-field" data-routine-field="wake"><span>Wake-up time</span><div><input id="hpWakeTime" type="time"></div></label>
+          <label class="hp-input-field" data-routine-field="sleep"><span>Sleep time</span><div><input id="hpSleepTime" type="time"></div></label>
         </div>`;
     }
 
@@ -243,6 +258,7 @@
   function createOverlay() {
     if (overlay || document.getElementById(OVERLAY_ID)) return;
     ensureEnhancementStyles();
+    restoreRoutineDraft();
     bodyOverflowBeforeOpen.value = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
@@ -276,6 +292,7 @@
     overlay.querySelector('#hpNextBtn').addEventListener('click', goNext);
     overlay.addEventListener('click', handleSelection);
     overlay.addEventListener('input', handleInput);
+    overlay.addEventListener('change', handleInput);
     renderStep();
   }
 
@@ -295,6 +312,23 @@
     next.querySelector('b').textContent = currentStep === steps.length - 1 ? '✓' : '→';
     restoreStepValues();
     requestAnimationFrame(() => overlay.querySelector('.hp-onboarding-main').scrollTo({ top: 0, behavior: 'auto' }));
+  }
+
+  function restoreRoutineDraft() {
+    try {
+      const draft = JSON.parse(sessionStorage.getItem(routineDraftKey()) || '{}');
+      if (!profile.mealsPerDay && draft.mealsPerDay) profile.mealsPerDay = draft.mealsPerDay;
+      if (!profile.wakeTime && draft.wakeTime) profile.wakeTime = draft.wakeTime;
+      if (!profile.sleepTime && draft.sleepTime) profile.sleepTime = draft.sleepTime;
+    } catch (error) {}
+  }
+
+  function saveRoutineDraft() {
+    sessionStorage.setItem(routineDraftKey(), JSON.stringify({
+      mealsPerDay: profile.mealsPerDay,
+      wakeTime: profile.wakeTime,
+      sleepTime: profile.sleepTime
+    }));
   }
 
   function restoreStepValues() {
@@ -326,15 +360,29 @@
   }
 
   function handleInput(event) {
-    if (event.target.id !== 'hpCustomAllergies') return;
-    profile.customAllergies = event.target.value;
-    sessionStorage.setItem(customAllergyDraftKey(), event.target.value);
-    if (event.target.value.trim()) {
-      profile.allergies = profile.allergies.filter(value => value !== 'none');
-      const none = overlay.querySelector('[data-multi-group="allergies"][data-multi-value="none"]');
-      if (none) none.classList.remove('selected');
-      clearAllergyAttention();
-      clearMessage();
+    if (event.target.id === 'hpCustomAllergies') {
+      profile.customAllergies = event.target.value;
+      sessionStorage.setItem(customAllergyDraftKey(), event.target.value);
+      if (event.target.value.trim()) {
+        profile.allergies = profile.allergies.filter(value => value !== 'none');
+        const none = overlay.querySelector('[data-multi-group="allergies"][data-multi-value="none"]');
+        if (none) none.classList.remove('selected');
+        clearAttention('#hpAllergySection');
+        clearMessage();
+      }
+      return;
+    }
+
+    if (['hpMeals', 'hpWakeTime', 'hpSleepTime'].includes(event.target.id)) {
+      profile.mealsPerDay = overlay.querySelector('#hpMeals')?.value || '';
+      profile.wakeTime = overlay.querySelector('#hpWakeTime')?.value || '';
+      profile.sleepTime = overlay.querySelector('#hpSleepTime')?.value || '';
+      event.target.closest('.hp-input-field')?.classList.remove('invalid');
+      saveRoutineDraft();
+      if (profile.mealsPerDay && profile.wakeTime && profile.sleepTime) {
+        clearAttention('#hpRoutineDetails');
+        clearMessage();
+      }
     }
   }
 
@@ -371,7 +419,7 @@
 
     profile[group] = [...current];
     overlay.querySelectorAll(`[data-multi-group="${group}"]`).forEach(button => button.classList.toggle('selected', current.has(button.dataset.multiValue)));
-    if (group === 'allergies' && current.size) clearAllergyAttention();
+    if (group === 'allergies' && current.size) clearAttention('#hpAllergySection');
     clearMessage();
     tapFeedback();
   }
@@ -390,6 +438,7 @@
       profile.mealsPerDay = overlay.querySelector('#hpMeals').value;
       profile.wakeTime = overlay.querySelector('#hpWakeTime').value;
       profile.sleepTime = overlay.querySelector('#hpSleepTime').value;
+      saveRoutineDraft();
     } else if (currentStep === 4) {
       profile.notes = overlay.querySelector('#hpNotes').value.trim();
     }
@@ -414,22 +463,42 @@
       .slice(0, 20);
   }
 
-  function guideToAllergies() {
-    const section = overlay.querySelector('#hpAllergySection');
+  function guideToSection(selector, focusSelector) {
+    const section = overlay.querySelector(selector);
     if (!section) return;
     section.classList.add('hp-attention');
     section.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setTimeout(() => section.classList.remove('hp-attention'), 1500);
+    setTimeout(() => {
+      const focusTarget = focusSelector ? section.querySelector(focusSelector) : null;
+      if (focusTarget) focusTarget.focus({ preventScroll: true });
+    }, 420);
+    setTimeout(() => section.classList.remove('hp-attention'), 1600);
   }
 
-  function clearAllergyAttention() {
-    const section = overlay && overlay.querySelector('#hpAllergySection');
+  function clearAttention(selector) {
+    const section = overlay && overlay.querySelector(selector);
     if (section) section.classList.remove('hp-attention');
+  }
+
+  function guideToRoutineDetails() {
+    const details = overlay.querySelector('#hpRoutineDetails');
+    if (!details) return;
+    details.querySelectorAll('.hp-input-field').forEach(field => field.classList.remove('invalid'));
+
+    let invalidSelector = '';
+    if (!profile.mealsPerDay) invalidSelector = '#hpMeals';
+    else if (!profile.wakeTime) invalidSelector = '#hpWakeTime';
+    else if (!profile.sleepTime) invalidSelector = '#hpSleepTime';
+
+    const invalidInput = invalidSelector ? details.querySelector(invalidSelector) : null;
+    invalidInput?.closest('.hp-input-field')?.classList.add('invalid');
+    guideToSection('#hpRoutineDetails', invalidSelector || '#hpMeals');
   }
 
   function validateCurrentStep() {
     collectCurrentStep();
     if (currentStep === 0 && !profile.goal) return showMessage('Choose the goal that matters most to you.');
+
     if (currentStep === 1) {
       if (!profile.sex) return showMessage('Choose your sex.');
       if (!numberInRange(profile.age, 13, 100)) return showMessage('Enter an age between 13 and 100.');
@@ -437,17 +506,27 @@
       if (!numberInRange(profile.weightKg, 25, 300)) return showMessage('Enter a weight between 25 and 300 kg.');
       if (profile.targetWeightKg && !numberInRange(profile.targetWeightKg, 25, 300)) return showMessage('Enter a valid target weight or leave it blank.');
     }
+
     if (currentStep === 2) {
       if (!profile.dietType) return showMessage('Choose your food preference.');
       const hasPresetAllergyChoice = Array.isArray(profile.allergies) && profile.allergies.length > 0;
       const hasManualAllergy = parsedCustomAllergies().length > 0;
       if (!hasPresetAllergyChoice && !hasManualAllergy) {
         showMessage('Please choose an allergy option, select None, or add one manually.');
-        guideToAllergies();
+        guideToSection('#hpAllergySection', '#hpCustomAllergies');
         return false;
       }
     }
-    if (currentStep === 3 && !profile.activityLevel) return showMessage('Choose your activity level.');
+
+    if (currentStep === 3) {
+      if (!profile.activityLevel) return showMessage('Choose your activity level.');
+      if (!profile.mealsPerDay || !profile.wakeTime || !profile.sleepTime) {
+        showMessage('Please complete your meals, wake-up time and sleep time.');
+        guideToRoutineDetails();
+        return false;
+      }
+    }
+
     return true;
   }
 
@@ -506,13 +585,14 @@
       mealsPerDay: Number(profile.mealsPerDay),
       userId: user.uid || '',
       userEmail: user.email || '',
-      version: 2,
+      version: 3,
       completedAt: new Date().toISOString()
     };
 
     localStorage.setItem(profileKey(user), JSON.stringify(savedProfile));
     localStorage.setItem(completionKey(user), 'true');
     sessionStorage.removeItem(customAllergyDraftKey());
+    sessionStorage.removeItem(routineDraftKey());
 
     let cloudSaved = false;
     try {
@@ -556,9 +636,7 @@
     ensureEnhancementStyles();
     launchIfNeeded();
     const root = document.getElementById('root');
-    if (root) {
-      new MutationObserver(launchIfNeeded).observe(root, { childList: true, subtree: true });
-    }
+    if (root) new MutationObserver(launchIfNeeded).observe(root, { childList: true, subtree: true });
     window.addEventListener('popstate', launchIfNeeded);
     window.addEventListener('storage', launchIfNeeded);
   }
