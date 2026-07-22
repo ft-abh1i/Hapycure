@@ -82,7 +82,8 @@
 .hp-step-copy > p:last-child { margin: 10px 0 0; color: #756b67; font-size: 13px; font-weight: 600; line-height: 1.48; }
 
 .hp-option-grid { display: grid; gap: 10px; }
-.hp-goal-grid, .hp-food-grid { grid-template-columns: 1fr 1fr; }
+.hp-goal-grid { grid-template-columns: 1fr; }
+.hp-food-grid { grid-template-columns: 1fr 1fr; }
 
 .hp-option-card {
   position: relative;
@@ -100,12 +101,18 @@
   transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
 }
 
-.hp-goal-grid .hp-option-card,
+.hp-goal-grid .hp-option-card {
+  min-height: 78px;
+  align-items: center;
+  flex-direction: row;
+  padding: 14px 48px 14px 16px;
+}
 .hp-food-grid .hp-option-card { min-height: 126px; align-items: flex-start; flex-direction: column; }
 .hp-option-card:active { transform: scale(.98); }
 .hp-option-card.selected { border-color: #df5a52; background: #fff5f3; box-shadow: 0 8px 20px rgba(200, 50, 43, .11); }
 
 .hp-option-icon { width: 37px; height: 37px; flex: 0 0 37px; display: grid; place-items: center; border-radius: 13px; background: #f8efec; color: #b9322c; font-size: 18px; font-weight: 950; }
+.hp-goal-grid .hp-option-icon { display: none; }
 .hp-option-copy { min-width: 0; }
 .hp-option-copy strong { display: block; font-size: 14px; font-weight: 950; line-height: 1.25; }
 .hp-option-copy small { display: block; margin-top: 4px; color: #827773; font-size: 10.5px; font-weight: 650; line-height: 1.35; }
@@ -163,8 +170,8 @@
 }
 
 @media (max-width: 350px) {
-  .hp-goal-grid, .hp-food-grid, .hp-input-grid { grid-template-columns: 1fr; }
-  .hp-goal-grid .hp-option-card, .hp-food-grid .hp-option-card { min-height: 86px; flex-direction: row; align-items: center; }
+  .hp-food-grid, .hp-input-grid { grid-template-columns: 1fr; }
+  .hp-food-grid .hp-option-card { min-height: 86px; flex-direction: row; align-items: center; }
   .hp-onboarding-header::before { width: 108px; flex-basis: 108px; }
 }
 
