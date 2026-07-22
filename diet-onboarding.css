@@ -222,3 +222,10 @@
   #page-login .login-phone-row { padding-top: .75rem; padding-bottom: .75rem; }
   #page-login .login-continue-btn { padding: .9rem; }
 }
+
+/* Keep the location panel sharp while blurring and dimming the app behind it. */
+#page-home .location-sheet {
+  background: rgba(0, 0, 0, .28);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
