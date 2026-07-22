@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-22-weekly-services-v1';
+const PATCH_VERSION = '2026-07-22-ai-diet-home-v1';
 
 const FIREBASE_CONFIG_SCRIPT = `
 <script id="hapycure-firebase-config">
