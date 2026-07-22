@@ -5,6 +5,7 @@
   const OVERLAY_ID = 'hapycureDietOnboarding';
   const AUTH_TYPE_KEY = 'nutritiliousAuthType';
   const USER_KEY = 'nutritiliousUser';
+  const CUSTOM_ALLERGY_DRAFT_PREFIX = 'nutritiliousCustomAllergiesDraft_';
   const bodyOverflowBeforeOpen = { value: '' };
 
   const steps = [
@@ -24,6 +25,7 @@
     targetWeightKg: '',
     dietType: '',
     allergies: [],
+    customAllergies: '',
     activityLevel: '',
     mealsPerDay: '3',
     wakeTime: '07:00',
@@ -56,6 +58,10 @@
     return `nutritiliousDietProfile_${accountId(user)}`;
   }
 
+  function customAllergyDraftKey() {
+    return CUSTOM_ALLERGY_DRAFT_PREFIX + accountId(getUser());
+  }
+
   function isEligible() {
     const user = getUser();
     return localStorage.getItem(AUTH_TYPE_KEY) === 'google' && Boolean(user.uid || user.email);
@@ -68,6 +74,62 @@
 
   function shouldOpen() {
     return Boolean(document.getElementById('page-home')) && isEligible() && !isComplete();
+  }
+
+  function ensureEnhancementStyles() {
+    if (document.getElementById('hpStep3EnhancementStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'hpStep3EnhancementStyles';
+    style.textContent = `
+      #${OVERLAY_ID} .hp-food-grid [data-select-value="vegetarian"].selected {
+        border-color: #2f9e44 !important;
+      }
+      #${OVERLAY_ID} .hp-custom-allergy-field {
+        display: block;
+        margin-top: 18px;
+      }
+      #${OVERLAY_ID} .hp-custom-allergy-field > span {
+        display: block;
+        margin-bottom: 9px;
+        color: #514845;
+        font-size: 11.5px;
+        font-weight: 900;
+        line-height: 1.3;
+      }
+      #${OVERLAY_ID} .hp-custom-allergy-field small {
+        color: #978c87;
+        font-weight: 650;
+      }
+      #${OVERLAY_ID} .hp-custom-allergy-field input {
+        width: 100%;
+        height: 52px;
+        padding: 0 14px;
+        border: 1px solid #e8e0dd;
+        border-radius: 16px;
+        outline: 0;
+        background: #faf8f7;
+        color: #201c1b;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 750;
+      }
+      #${OVERLAY_ID} .hp-custom-allergy-field input:focus {
+        border-color: #dd6b64;
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(208, 52, 44, .08);
+      }
+      #${OVERLAY_ID} .hp-allergy-group.hp-attention {
+        border-radius: 18px;
+        outline: 2px solid rgba(208, 52, 44, .36);
+        outline-offset: 8px;
+        animation: hpAllergyAttention .55s ease 2;
+      }
+      @keyframes hpAllergyAttention {
+        0%, 100% { outline-color: rgba(208, 52, 44, .2); }
+        50% { outline-color: rgba(208, 52, 44, .7); }
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   function optionCard(group, value, title, description, icon) {
@@ -123,8 +185,8 @@
             ${optionCard('dietType', 'vegan', 'Vegan', 'No animal-derived foods', '🌱')}
           </div>
         </div>
-        <div class="hp-field-group hp-top-gap">
-          <label class="hp-label">Allergies or foods to avoid <small>(choose all that apply)</small></label>
+        <div class="hp-field-group hp-top-gap hp-allergy-group" id="hpAllergySection">
+          <label class="hp-label">Allergies or foods to avoid <small>(choose at least one option)</small></label>
           <div class="hp-chip-wrap">
             ${chip('allergies', 'none', 'None')}
             ${chip('allergies', 'milk', 'Milk')}
@@ -135,6 +197,10 @@
             ${chip('allergies', 'eggs', 'Eggs')}
             ${chip('allergies', 'seafood', 'Seafood')}
           </div>
+          <label class="hp-custom-allergy-field">
+            <span>Add manually <small>(optional)</small></span>
+            <input id="hpCustomAllergies" type="text" maxlength="180" autocomplete="off" placeholder="e.g. sesame, mushroom, mustard" aria-label="Add other allergies manually">
+          </label>
         </div>`;
     }
 
@@ -176,6 +242,7 @@
 
   function createOverlay() {
     if (overlay || document.getElementById(OVERLAY_ID)) return;
+    ensureEnhancementStyles();
     bodyOverflowBeforeOpen.value = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
@@ -208,6 +275,7 @@
     overlay.querySelector('#hpBackBtn').addEventListener('click', goBack);
     overlay.querySelector('#hpNextBtn').addEventListener('click', goNext);
     overlay.addEventListener('click', handleSelection);
+    overlay.addEventListener('input', handleInput);
     renderStep();
   }
 
@@ -244,15 +312,30 @@
       hpHeight: profile.heightCm,
       hpWeight: profile.weightKg,
       hpTargetWeight: profile.targetWeightKg,
+      hpCustomAllergies: profile.customAllergies || sessionStorage.getItem(customAllergyDraftKey()) || '',
       hpMeals: profile.mealsPerDay,
       hpWakeTime: profile.wakeTime,
       hpSleepTime: profile.sleepTime,
       hpNotes: profile.notes
     };
+
     Object.entries(fieldValues).forEach(([id, value]) => {
       const field = overlay.querySelector(`#${id}`);
       if (field && value !== undefined && value !== '') field.value = value;
     });
+  }
+
+  function handleInput(event) {
+    if (event.target.id !== 'hpCustomAllergies') return;
+    profile.customAllergies = event.target.value;
+    sessionStorage.setItem(customAllergyDraftKey(), event.target.value);
+    if (event.target.value.trim()) {
+      profile.allergies = profile.allergies.filter(value => value !== 'none');
+      const none = overlay.querySelector('[data-multi-group="allergies"][data-multi-value="none"]');
+      if (none) none.classList.remove('selected');
+      clearAllergyAttention();
+      clearMessage();
+    }
   }
 
   function handleSelection(event) {
@@ -275,6 +358,12 @@
     if (value === 'none') {
       current.clear();
       current.add('none');
+      if (group === 'allergies') {
+        profile.customAllergies = '';
+        const customInput = overlay.querySelector('#hpCustomAllergies');
+        if (customInput) customInput.value = '';
+        sessionStorage.removeItem(customAllergyDraftKey());
+      }
     } else {
       current.delete('none');
       current.has(value) ? current.delete(value) : current.add(value);
@@ -282,6 +371,7 @@
 
     profile[group] = [...current];
     overlay.querySelectorAll(`[data-multi-group="${group}"]`).forEach(button => button.classList.toggle('selected', current.has(button.dataset.multiValue)));
+    if (group === 'allergies' && current.size) clearAllergyAttention();
     clearMessage();
     tapFeedback();
   }
@@ -292,6 +382,10 @@
       profile.heightCm = overlay.querySelector('#hpHeight').value.trim();
       profile.weightKg = overlay.querySelector('#hpWeight').value.trim();
       profile.targetWeightKg = overlay.querySelector('#hpTargetWeight').value.trim();
+    } else if (currentStep === 2) {
+      const customInput = overlay.querySelector('#hpCustomAllergies');
+      profile.customAllergies = customInput ? customInput.value.trim() : '';
+      sessionStorage.setItem(customAllergyDraftKey(), profile.customAllergies);
     } else if (currentStep === 3) {
       profile.mealsPerDay = overlay.querySelector('#hpMeals').value;
       profile.wakeTime = overlay.querySelector('#hpWakeTime').value;
@@ -306,6 +400,33 @@
     return Number.isFinite(number) && number >= min && number <= max;
   }
 
+  function parsedCustomAllergies() {
+    const seen = new Set();
+    return String(profile.customAllergies || '')
+      .split(',')
+      .map(item => item.trim())
+      .filter(item => {
+        const normalized = item.toLowerCase();
+        if (!normalized || seen.has(normalized)) return false;
+        seen.add(normalized);
+        return true;
+      })
+      .slice(0, 20);
+  }
+
+  function guideToAllergies() {
+    const section = overlay.querySelector('#hpAllergySection');
+    if (!section) return;
+    section.classList.add('hp-attention');
+    section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => section.classList.remove('hp-attention'), 1500);
+  }
+
+  function clearAllergyAttention() {
+    const section = overlay && overlay.querySelector('#hpAllergySection');
+    if (section) section.classList.remove('hp-attention');
+  }
+
   function validateCurrentStep() {
     collectCurrentStep();
     if (currentStep === 0 && !profile.goal) return showMessage('Choose the goal that matters most to you.');
@@ -316,7 +437,16 @@
       if (!numberInRange(profile.weightKg, 25, 300)) return showMessage('Enter a weight between 25 and 300 kg.');
       if (profile.targetWeightKg && !numberInRange(profile.targetWeightKg, 25, 300)) return showMessage('Enter a valid target weight or leave it blank.');
     }
-    if (currentStep === 2 && !profile.dietType) return showMessage('Choose your food preference.');
+    if (currentStep === 2) {
+      if (!profile.dietType) return showMessage('Choose your food preference.');
+      const hasPresetAllergyChoice = Array.isArray(profile.allergies) && profile.allergies.length > 0;
+      const hasManualAllergy = parsedCustomAllergies().length > 0;
+      if (!hasPresetAllergyChoice && !hasManualAllergy) {
+        showMessage('Please choose an allergy option, select None, or add one manually.');
+        guideToAllergies();
+        return false;
+      }
+    }
     if (currentStep === 3 && !profile.activityLevel) return showMessage('Choose your activity level.');
     return true;
   }
@@ -364,8 +494,11 @@
     clearMessage();
 
     const user = getUser();
+    const customAllergies = parsedCustomAllergies();
     const savedProfile = {
       ...profile,
+      allergies: customAllergies.length ? profile.allergies.filter(item => item !== 'none') : profile.allergies,
+      customAllergies,
       age: Number(profile.age),
       heightCm: Number(profile.heightCm),
       weightKg: Number(profile.weightKg),
@@ -373,12 +506,13 @@
       mealsPerDay: Number(profile.mealsPerDay),
       userId: user.uid || '',
       userEmail: user.email || '',
-      version: 1,
+      version: 2,
       completedAt: new Date().toISOString()
     };
 
     localStorage.setItem(profileKey(user), JSON.stringify(savedProfile));
     localStorage.setItem(completionKey(user), 'true');
+    sessionStorage.removeItem(customAllergyDraftKey());
 
     let cloudSaved = false;
     try {
@@ -419,6 +553,7 @@
   }
 
   function boot() {
+    ensureEnhancementStyles();
     launchIfNeeded();
     const root = document.getElementById('root');
     if (root) {
