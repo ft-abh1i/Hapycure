@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-22-popup-auth-v1';
+const PATCH_VERSION = '2026-07-22-popup-auth-v2-logo';
 
 const FIREBASE_CONFIG_SCRIPT = `
 <script id="hapycure-firebase-config">
@@ -29,6 +29,21 @@ const HOME_RUNTIME_PATCH = `
     min-height: 0 !important;
     max-height: 100dvh !important;
     overflow: hidden !important;
+  }
+
+  /* Use the uploaded Hepicure logo throughout the diet onboarding header. */
+  #hapycureDietOnboarding .hp-brand-mark {
+    width: clamp(118px, 34vw, 150px) !important;
+    height: 46px !important;
+    flex: 0 0 clamp(118px, 34vw, 150px) !important;
+    border-radius: 0 !important;
+    background: url('./hepicure_logo_transparent.png?v=${PATCH_VERSION}') left center / contain no-repeat !important;
+    color: transparent !important;
+    font-size: 0 !important;
+    box-shadow: none !important;
+  }
+  #hapycureDietOnboarding .hp-onboarding-header > div:nth-child(2) {
+    display: none !important;
   }
 </style>
 <script id="hapycure-home-scroll-sync">
@@ -152,14 +167,14 @@ const FIREBASE_LOGIN_LOGIC = `function initLoginPage(navigate) {
       }
 
       phoneNumber.addEventListener('input', function () {
-        phoneNumber.value = phoneNumber.value.replace(/\\D/g, '').slice(0, 10);
+        phoneNumber.value = phoneNumber.value.replace(/\D/g, '').slice(0, 10);
         setMsg('');
       });
       phoneNumber.addEventListener('keydown', function (event) {
         if (event.key === 'Enter') event.preventDefault();
       });
       continueLogin.addEventListener('click', function () {
-        const digits = phoneNumber.value.replace(/\\D/g, '');
+        const digits = phoneNumber.value.replace(/\D/g, '');
         if (digits.length !== 10) {
           setMsg('Enter a valid 10-digit mobile number.');
           phoneNumber.focus();
