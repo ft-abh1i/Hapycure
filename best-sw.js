@@ -10,6 +10,10 @@ const FIREBASE_CONFIG_SCRIPT = `
   };
 </script>`;
 
+const DIET_ONBOARDING_ASSETS = `
+<link rel="stylesheet" href="./diet-onboarding.css" />
+<script src="./diet-onboarding.js" defer></script>`;
+
 const HOME_RUNTIME_PATCH = `
 <style id="hapycure-home-scroll-lock">
   #page-home {
@@ -203,7 +207,7 @@ function patchAppShell(html) {
       /function logout\(\)\{clearStoredLocation\(\);/,
       'function logout(){try{if(window.firebase&&firebase.apps.length)firebase.auth().signOut().catch(function(){})}catch(error){}clearStoredLocation();'
     )
-    .replace('</head>',FIREBASE_CONFIG_SCRIPT+'\n'+HOME_RUNTIME_PATCH+'\n</head>');
+    .replace('</head>',FIREBASE_CONFIG_SCRIPT+'\n'+DIET_ONBOARDING_ASSETS+'\n'+HOME_RUNTIME_PATCH+'\n</head>');
 }
 
 self.addEventListener('install', () => {
