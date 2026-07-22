@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-22-popup-auth-v2-logo';
+const PATCH_VERSION = '2026-07-22-food-preference-v1';
 
 const FIREBASE_CONFIG_SCRIPT = `
 <script id="hapycure-firebase-config">
@@ -45,6 +45,59 @@ const HOME_RUNTIME_PATCH = `
   #hapycureDietOnboarding .hp-onboarding-header > div:nth-child(2) {
     display: none !important;
   }
+
+  /* Food preference: four clean, full-width choices with no icons. */
+  #hapycureDietOnboarding .hp-food-grid {
+    grid-template-columns: 1fr !important;
+  }
+  #hapycureDietOnboarding .hp-food-grid .hp-option-card {
+    min-height: 78px !important;
+    align-items: center !important;
+    flex-direction: row !important;
+    padding: 14px 16px !important;
+  }
+  #hapycureDietOnboarding .hp-food-grid .hp-option-icon {
+    display: none !important;
+  }
+
+  #hapycureDietOnboarding .hp-custom-allergy-field {
+    display: block;
+    margin-top: 18px;
+  }
+  #hapycureDietOnboarding .hp-custom-allergy-field > span {
+    display: block;
+    margin-bottom: 9px;
+    color: #514845;
+    font-size: 11.5px;
+    font-weight: 900;
+    line-height: 1.3;
+  }
+  #hapycureDietOnboarding .hp-custom-allergy-field small {
+    color: #978c87;
+    font-weight: 650;
+  }
+  #hapycureDietOnboarding .hp-custom-allergy-field input {
+    width: 100%;
+    height: 52px;
+    padding: 0 14px;
+    border: 1px solid #e8e0dd;
+    border-radius: 16px;
+    outline: 0;
+    background: #faf8f7;
+    color: #201c1b;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 750;
+  }
+  #hapycureDietOnboarding .hp-custom-allergy-field input::placeholder {
+    color: #a09692;
+    font-weight: 650;
+  }
+  #hapycureDietOnboarding .hp-custom-allergy-field input:focus {
+    border-color: #dd6b64;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(208, 52, 44, .08);
+  }
 </style>
 <script id="hapycure-home-scroll-sync">
   (() => {
@@ -59,6 +112,131 @@ const HOME_RUNTIME_PATCH = `
       if (root) new MutationObserver(syncPageScroll).observe(root, { childList: true, subtree: true });
     });
     window.addEventListener('popstate', syncPageScroll);
+  })();
+</script>
+<script id="hapycure-food-preference-patch">
+  (() => {
+    const DRAFT_PREFIX = 'nutritiliousCustomAllergiesDraft_';
+
+    function getUser() {
+      try {
+        return JSON.parse(localStorage.getItem('nutritiliousUser') || '{}') || {};
+      } catch (error) {
+        return {};
+      }
+    }
+
+    function accountId(user) {
+      return String(user.uid || user.email || 'google').replace(/[^a-zA-Z0-9_-]/g, '_');
+    }
+
+    function draftKey() {
+      return DRAFT_PREFIX + accountId(getUser());
+    }
+
+    function parseCustomAllergies(value) {
+      const seen = new Set();
+      return String(value || '')
+        .split(',')
+        .map(item => item.trim())
+        .filter(item => {
+          const normalized = item.toLowerCase();
+          if (!normalized || seen.has(normalized)) return false;
+          seen.add(normalized);
+          return true;
+        })
+        .slice(0, 20);
+    }
+
+    function addManualAllergyField() {
+      const overlay = document.getElementById('hapycureDietOnboarding');
+      if (!overlay || !overlay.querySelector('.hp-food-grid')) return;
+      const chips = overlay.querySelector('.hp-food-grid')
+        .closest('.hp-field-group')
+        .nextElementSibling;
+      if (!chips || chips.querySelector('#hpCustomAllergies')) return;
+
+      const field = document.createElement('label');
+      field.className = 'hp-custom-allergy-field';
+      field.innerHTML = '<span>Add manually <small>(optional)</small></span>' +
+        '<input id="hpCustomAllergies" type="text" maxlength="180" autocomplete="off" ' +
+        'placeholder="e.g. sesame, mushroom, mustard" aria-label="Add other allergies manually">';
+      chips.appendChild(field);
+
+      const input = field.querySelector('input');
+      input.value = sessionStorage.getItem(draftKey()) || '';
+      input.addEventListener('input', function () {
+        sessionStorage.setItem(draftKey(), input.value);
+        if (input.value.trim()) {
+          const none = overlay.querySelector('[data-multi-group="allergies"][data-multi-value="none"]');
+          if (none) none.classList.remove('selected');
+        }
+      });
+    }
+
+    async function syncCustomAllergiesToProfile() {
+      const user = getUser();
+      const id = accountId(user);
+      const raw = sessionStorage.getItem(DRAFT_PREFIX + id) || '';
+      const customAllergies = parseCustomAllergies(raw);
+      const profileKey = 'nutritiliousDietProfile_' + id;
+      let savedProfile;
+
+      try {
+        savedProfile = JSON.parse(localStorage.getItem(profileKey) || 'null');
+      } catch (error) {
+        savedProfile = null;
+      }
+      if (!savedProfile) return false;
+
+      const selected = Array.isArray(savedProfile.allergies) ? savedProfile.allergies : [];
+      savedProfile.allergies = customAllergies.length ? selected.filter(item => item !== 'none') : selected;
+      savedProfile.customAllergies = customAllergies;
+      localStorage.setItem(profileKey, JSON.stringify(savedProfile));
+
+      try {
+        if (window.firebase && firebase.apps.length && user.uid) {
+          await firebase.firestore().collection('users').doc(user.uid).set({
+            dietProfile: savedProfile,
+            dietProfileUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        }
+      } catch (error) {}
+
+      sessionStorage.removeItem(DRAFT_PREFIX + id);
+      return true;
+    }
+
+    function scheduleProfileSync() {
+      [80, 250, 650, 1200].forEach(delay => {
+        setTimeout(() => { syncCustomAllergiesToProfile(); }, delay);
+      });
+    }
+
+    document.addEventListener('click', event => {
+      const allergyChoice = event.target.closest('[data-multi-group="allergies"]');
+      if (allergyChoice && allergyChoice.dataset.multiValue === 'none') {
+        setTimeout(() => {
+          const input = document.getElementById('hpCustomAllergies');
+          if (input) input.value = '';
+          sessionStorage.removeItem(draftKey());
+        }, 0);
+      }
+
+      const next = event.target.closest('#hpNextBtn');
+      if (!next) return;
+      const count = document.getElementById('hpStepCount');
+      if (count && count.textContent.trim().startsWith('5 ')) scheduleProfileSync();
+    });
+
+    function boot() {
+      addManualAllergyField();
+      const root = document.getElementById('root');
+      if (root) new MutationObserver(addManualAllergyField).observe(root, { childList: true, subtree: true });
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+    else boot();
   })();
 </script>`;
 
