@@ -158,3 +158,45 @@
 @media (prefers-reduced-motion: reduce) {
   .hp-onboarding, .hp-onboarding.closing, .hp-progress span, .hp-option-card { animation: none; transition: none; }
 }
+
+/* Login screen: reduce the decorative top area on phones so every action stays visible. */
+#page-login {
+  min-height: 100dvh;
+  overflow-y: auto;
+}
+
+#page-login .login-bg {
+  transform: translateY(-34px) scale(1.015);
+  transform-origin: top center;
+}
+
+#page-login .login-wrap {
+  min-height: 100dvh;
+  align-items: flex-start;
+  padding-top: clamp(205px, 23dvh, 270px);
+}
+
+#page-login .login-card {
+  min-height: calc(100dvh - clamp(205px, 23dvh, 270px));
+  padding-top: 2rem;
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+@media (max-width: 480px) {
+  #page-login .login-label { margin-top: 1.45rem; }
+  #page-login .login-continue-btn { margin-top: 1.15rem; }
+  #page-login .login-msg { margin-top: .45rem; }
+  #page-login .login-terms { margin-top: .9rem; }
+  #page-login .login-or-row { margin-top: 1.1rem; }
+  #page-login .login-google-btn { margin-top: 1.1rem; }
+}
+
+@media (max-height: 740px) {
+  #page-login .login-wrap { padding-top: 180px; }
+  #page-login .login-card { min-height: calc(100dvh - 180px); padding-top: 1.55rem; }
+  #page-login .login-title { font-size: 1.65rem; }
+  #page-login .login-subtitle { margin-top: .3rem; }
+  #page-login .login-label { margin-top: 1.1rem; }
+  #page-login .login-phone-row { padding-top: .75rem; padding-bottom: .75rem; }
+  #page-login .login-continue-btn { padding: .9rem; }
+}
