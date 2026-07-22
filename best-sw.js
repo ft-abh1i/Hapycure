@@ -1,3 +1,5 @@
+const PATCH_VERSION = '2026-07-22-popup-auth-v1';
+
 const FIREBASE_CONFIG_SCRIPT = `
 <script id="hapycure-firebase-config">
   window.NUTRITILIOUS_FIREBASE_CONFIG = {
@@ -11,8 +13,8 @@ const FIREBASE_CONFIG_SCRIPT = `
 </script>`;
 
 const DIET_ONBOARDING_ASSETS = `
-<link rel="stylesheet" href="./diet-onboarding.css" />
-<script src="./diet-onboarding.js" defer></script>`;
+<link rel="stylesheet" href="./diet-onboarding.css?v=${PATCH_VERSION}" />
+<script src="./diet-onboarding.js?v=${PATCH_VERSION}" defer></script>`;
 
 const HOME_RUNTIME_PATCH = `
 <style id="hapycure-home-scroll-lock">
@@ -22,7 +24,6 @@ const HOME_RUNTIME_PATCH = `
     overflow: hidden !important;
     overscroll-behavior: none;
   }
-
   #page-home > .app {
     height: 100dvh !important;
     min-height: 0 !important;
@@ -37,185 +38,146 @@ const HOME_RUNTIME_PATCH = `
       document.documentElement.style.overflowY = isHomePage ? 'hidden' : '';
       document.body.style.overflowY = isHomePage ? 'hidden' : '';
     }
-
     document.addEventListener('DOMContentLoaded', () => {
       syncPageScroll();
       const root = document.getElementById('root');
-      if (root) {
-        new MutationObserver(syncPageScroll).observe(root, {
-          childList: true,
-          subtree: true
-        });
-      }
+      if (root) new MutationObserver(syncPageScroll).observe(root, { childList: true, subtree: true });
     });
-
     window.addEventListener('popstate', syncPageScroll);
   })();
 </script>`;
 
 const FIREBASE_LOGIN_LOGIC = `function initLoginPage(navigate) {
+      const phoneNumber = document.getElementById('phoneNumber');
+      const continueLogin = document.getElementById('continueLogin');
+      const googleLogin = document.getElementById('googleLogin');
+      const loginMsg = document.getElementById('loginMsg');
+      const firebaseConfig = window.NUTRITILIOUS_FIREBASE_CONFIG;
+      let signInCompleted = false;
+      let auth = null;
 
-    const phoneNumber=document.getElementById("phoneNumber"),continueLogin=document.getElementById("continueLogin"),googleLogin=document.getElementById("googleLogin"),loginMsg=document.getElementById("loginMsg");
-    const firebaseConfig=window.NUTRITILIOUS_FIREBASE_CONFIG;
-    let signInCompleted=false;
-    let stopAuthListener=null;
-
-    function setMsg(message,success=false){
-      loginMsg.style.color=success?"#267e3e":"#d0342c";
-      loginMsg.textContent=message||"";
-    }
-
-    function setBusy(isBusy){
-      googleLogin.disabled=isBusy;
-      continueLogin.disabled=isBusy;
-      googleLogin.setAttribute("aria-busy",String(isBusy));
-    }
-
-    function getFirebaseAuth(){
-      if(!window.firebase||!firebase.auth)throw new Error("Firebase Authentication failed to load.");
-      if(!firebaseConfig)throw new Error("Firebase configuration is missing.");
-      if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
-      return firebase.auth();
-    }
-
-    function saveSignedInUser(user){
-      const userData={
-        uid:user.uid||"",
-        name:user.displayName||"",
-        email:user.email||"",
-        phone:user.phoneNumber||"",
-        photoURL:user.photoURL||"",
-        isAnonymous:false,
-        provider:"google"
-      };
-      localStorage.setItem("nutritiliousAuthType","google");
-      localStorage.setItem("nutritiliousUser",JSON.stringify(userData));
-      localStorage.removeItem("nutritiliousLoggedOut");
-
-      const accountId=String(userData.uid||userData.email||"google").replace(/[^a-zA-Z0-9_-]/g,"_");
-      if(userData.name)localStorage.setItem("nutritiliousProfile_"+accountId+"_Name",userData.name);
-      if(userData.email)localStorage.setItem("nutritiliousProfile_"+accountId+"_Email",userData.email);
-      if(userData.phone)localStorage.setItem("nutritiliousProfile_"+accountId+"_Phone",userData.phone);
-
-      try{
-        firebase.firestore().collection("users").doc(userData.uid).set({
-          uid:userData.uid,
-          name:userData.name,
-          email:userData.email,
-          phone:userData.phone,
-          photoURL:userData.photoURL,
-          provider:"google",
-          lastLoginAt:firebase.firestore.FieldValue.serverTimestamp()
-        },{merge:true}).catch(function(){});
-      }catch(error){}
-    }
-
-    function friendlyGoogleError(error){
-      const code=error&&error.code?error.code:"";
-      if(code==="auth/popup-closed-by-user")return "Google sign-in was cancelled.";
-      if(code==="auth/popup-blocked")return "Your browser blocked the Google sign-in window. Please allow pop-ups and try again.";
-      if(code==="auth/unauthorized-domain")return "This website domain is not authorized in Firebase Authentication.";
-      if(code==="auth/network-request-failed")return "Network error. Check your internet connection and try again.";
-      if(code==="auth/account-exists-with-different-credential")return "An account already exists with this email using another sign-in method.";
-      return (error&&error.message)||"Google sign-in failed. Please try again.";
-    }
-
-    async function completeGoogleSignIn(user){
-      if(signInCompleted)return;
-      if(!user)throw new Error("Google did not return a user account.");
-      signInCompleted=true;
-      if(stopAuthListener){
-        stopAuthListener();
-        stopAuthListener=null;
+      function setMsg(message, success) {
+        loginMsg.style.color = success ? '#267e3e' : '#d0342c';
+        loginMsg.textContent = message || '';
       }
-      saveSignedInUser(user);
-      sessionStorage.removeItem("nutritiliousGoogleRedirectPending");
-      setMsg("Signed in successfully.",true);
-      navigate("home");
-      window.history.replaceState({nutriView:"home"},"");
-    }
 
-    async function startGoogleSignIn(){
-      setBusy(true);
-      setMsg("Opening Google sign-in...",true);
-      localStorage.removeItem("nutritiliousLoggedOut");
-      try{
-        const auth=getFirebaseAuth();
-        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-        const provider=new firebase.auth.GoogleAuthProvider();
-        provider.setCustomParameters({prompt:"select_account"});
-        const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      function setBusy(isBusy) {
+        googleLogin.disabled = isBusy;
+        continueLogin.disabled = isBusy;
+        googleLogin.setAttribute('aria-busy', String(isBusy));
+      }
 
-        if(isMobile){
-          sessionStorage.setItem("nutritiliousGoogleRedirectPending","true");
-          await auth.signInWithRedirect(provider);
+      function getAuth() {
+        if (!window.firebase || !firebase.auth) throw new Error('Firebase Authentication failed to load.');
+        if (!firebaseConfig) throw new Error('Firebase configuration is missing.');
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        if (!auth) auth = firebase.auth();
+        return auth;
+      }
+
+      function saveSignedInUser(user) {
+        const userData = {
+          uid: user.uid || '',
+          name: user.displayName || '',
+          email: user.email || '',
+          phone: user.phoneNumber || '',
+          photoURL: user.photoURL || '',
+          isAnonymous: false,
+          provider: 'google'
+        };
+
+        localStorage.setItem('nutritiliousAuthType', 'google');
+        localStorage.setItem('nutritiliousUser', JSON.stringify(userData));
+        localStorage.removeItem('nutritiliousLoggedOut');
+
+        const accountId = String(userData.uid || userData.email || 'google').replace(/[^a-zA-Z0-9_-]/g, '_');
+        if (userData.name) localStorage.setItem('nutritiliousProfile_' + accountId + '_Name', userData.name);
+        if (userData.email) localStorage.setItem('nutritiliousProfile_' + accountId + '_Email', userData.email);
+        if (userData.phone) localStorage.setItem('nutritiliousProfile_' + accountId + '_Phone', userData.phone);
+
+        try {
+          firebase.firestore().collection('users').doc(userData.uid).set({
+            uid: userData.uid,
+            name: userData.name,
+            email: userData.email,
+            phone: userData.phone,
+            photoURL: userData.photoURL,
+            provider: 'google',
+            lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true }).catch(function () {});
+        } catch (error) {}
+      }
+
+      function friendlyGoogleError(error) {
+        const code = error && error.code ? error.code : '';
+        if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return 'Google sign-in was cancelled.';
+        if (code === 'auth/popup-blocked') return 'Please allow pop-ups for this website, then tap Continue with Google again.';
+        if (code === 'auth/unauthorized-domain') return 'This website domain is not authorized in Firebase Authentication.';
+        if (code === 'auth/network-request-failed') return 'Network error. Check your internet connection and try again.';
+        if (code === 'auth/account-exists-with-different-credential') return 'An account already exists with this email using another sign-in method.';
+        return error && error.message ? error.message : 'Google sign-in failed. Please try again.';
+      }
+
+      function completeGoogleSignIn(user) {
+        if (signInCompleted || !user) return;
+        signInCompleted = true;
+        saveSignedInUser(user);
+        sessionStorage.removeItem('nutritiliousGoogleRedirectPending');
+        setMsg('Signed in successfully.', true);
+        window.history.replaceState({ nutriView: 'home' }, '');
+        navigate('home');
+      }
+
+      async function startGoogleSignIn() {
+        if (googleLogin.disabled) return;
+        setBusy(true);
+        setMsg('Opening Google sign-in…', true);
+        localStorage.removeItem('nutritiliousLoggedOut');
+
+        try {
+          const currentAuth = getAuth();
+          const provider = new firebase.auth.GoogleAuthProvider();
+          provider.setCustomParameters({ prompt: 'select_account' });
+
+          // Popup is intentionally used on mobile too. Firebase redirect auth can lose
+          // its pending result when the app and auth handler use different domains.
+          const result = await currentAuth.signInWithPopup(provider);
+          completeGoogleSignIn(result && result.user);
+        } catch (error) {
+          signInCompleted = false;
+          setMsg(friendlyGoogleError(error), false);
+        } finally {
+          if (document.getElementById('page-login')) setBusy(false);
+        }
+      }
+
+      phoneNumber.addEventListener('input', function () {
+        phoneNumber.value = phoneNumber.value.replace(/\\D/g, '').slice(0, 10);
+        setMsg('');
+      });
+      phoneNumber.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') event.preventDefault();
+      });
+      continueLogin.addEventListener('click', function () {
+        const digits = phoneNumber.value.replace(/\\D/g, '');
+        if (digits.length !== 10) {
+          setMsg('Enter a valid 10-digit mobile number.');
+          phoneNumber.focus();
           return;
         }
-
-        try{
-          const result=await auth.signInWithPopup(provider);
-          await completeGoogleSignIn(result.user);
-        }catch(error){
-          if(error&&error.code==="auth/popup-blocked"){
-            sessionStorage.setItem("nutritiliousGoogleRedirectPending","true");
-            await auth.signInWithRedirect(provider);
-            return;
-          }
-          throw error;
-        }
-      }catch(error){
-        signInCompleted=false;
-        setMsg(friendlyGoogleError(error));
-      }finally{
-        if(document.getElementById("page-login"))setBusy(false);
-      }
-    }
-
-    phoneNumber.addEventListener("input",()=>{
-      phoneNumber.value=phoneNumber.value.replace(/\\D/g,"").slice(0,10);
-      setMsg("");
-    });
-    phoneNumber.addEventListener("keydown",event=>{
-      if(event.key==="Enter")event.preventDefault();
-    });
-    continueLogin.addEventListener("click",()=>{
-      const digits=phoneNumber.value.replace(/\\D/g,"");
-      if(digits.length!==10){
-        setMsg("Enter a valid 10-digit mobile number.");
-        phoneNumber.focus();
-        return;
-      }
-      setMsg("Phone login is not available yet. Continue with Google.");
-    });
-    googleLogin.addEventListener("click",startGoogleSignIn);
-
-    try{
-      const auth=getFirebaseAuth();
-      stopAuthListener=auth.onAuthStateChanged(user=>{
-        if(user&&localStorage.getItem("nutritiliousLoggedOut")!=="true"){
-          completeGoogleSignIn(user).catch(error=>{
-            signInCompleted=false;
-            setMsg(friendlyGoogleError(error));
-          });
-        }
+        setMsg('Phone login is not available yet. Continue with Google.');
       });
+      googleLogin.addEventListener('click', startGoogleSignIn);
 
-      auth.getRedirectResult().then(result=>{
-        if(result&&result.user){
-          completeGoogleSignIn(result.user).catch(error=>{
-            signInCompleted=false;
-            setMsg(friendlyGoogleError(error));
-          });
-        }
-      }).catch(error=>{
-        sessionStorage.removeItem("nutritiliousGoogleRedirectPending");
-        signInCompleted=false;
-        setMsg(friendlyGoogleError(error));
-      });
-    }catch(error){
-      setMsg(friendlyGoogleError(error));
-    }
-
+      try {
+        const currentAuth = getAuth();
+        currentAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function () {});
+        currentAuth.onAuthStateChanged(function (user) {
+          if (user && localStorage.getItem('nutritiliousLoggedOut') !== 'true') completeGoogleSignIn(user);
+        });
+      } catch (error) {
+        setMsg(friendlyGoogleError(error), false);
+      }
     }`;
 
 const AUTH_AWARE_APP_LOGIC = `function App() {
@@ -234,15 +196,11 @@ const AUTH_AWARE_APP_LOGIC = `function App() {
 
       useEffect(() => {
         const initialView = getInitialView();
-        if (!window.history.state || !window.history.state.nutriView) {
-          window.history.replaceState({ nutriView: initialView }, '');
-        } else if (initialView === 'home' && window.history.state.nutriView === 'login') {
-          window.history.replaceState({ nutriView: 'home' }, '');
-          setView('home');
-        }
+        window.history.replaceState({ nutriView: initialView }, '');
+        if (initialView !== view) setView(initialView);
 
         const onPopState = (event) => {
-          const requestedView = (event.state && event.state.nutriView) || getInitialView();
+          const requestedView = event.state && event.state.nutriView ? event.state.nutriView : getInitialView();
           const safeView = requestedView === 'login' && getInitialView() === 'home' ? 'home' : requestedView;
           setView(safeView);
         };
@@ -253,11 +211,8 @@ const AUTH_AWARE_APP_LOGIC = `function App() {
 
       const navigate = (next) => {
         setView(next);
-        if (next === 'home' && getInitialView() === 'home') {
-          window.history.replaceState({ nutriView: next }, '');
-        } else {
-          window.history.pushState({ nutriView: next }, '');
-        }
+        if (next === 'home') window.history.replaceState({ nutriView: 'home' }, '');
+        else window.history.pushState({ nutriView: next }, '');
       };
 
       if (view === 'help') return <HelpPage navigate={navigate} />;
@@ -266,44 +221,40 @@ const AUTH_AWARE_APP_LOGIC = `function App() {
     }`;
 
 function patchAppShell(html) {
-  const loginPattern=/function initLoginPage\(navigate\)\s*\{[\s\S]*?\n\s*\}\n\n\s*\/\* ============ Help & Support page logic/;
-  const appPattern=/function App\(\)\s*\{[\s\S]*?\n\s*\}\n\n\s*const root = ReactDOM\.createRoot/;
+  const loginPattern = /function initLoginPage\(navigate\)\s*\{[\s\S]*?\n\s*\}\n\n\s*\/\* ============ Help & Support page logic/;
+  const appPattern = /function App\(\)\s*\{[\s\S]*?\n\s*\}\n\n\s*const root = ReactDOM\.createRoot/;
 
   return html
-    .replace(
-      /<button\s+class=["']login-skip-btn["'][^>]*id=["']skipLogin["'][^>]*>[\s\S]*?<\/button>/i,
-      ''
-    )
-    .replace(loginPattern,FIREBASE_LOGIN_LOGIC+'\n\n    /* ============ Help & Support page logic')
-    .replace(appPattern,AUTH_AWARE_APP_LOGIC+'\n\n    const root = ReactDOM.createRoot')
+    .replace(/<button\s+class=["']login-skip-btn["'][^>]*id=["']skipLogin["'][^>]*>[\s\S]*?<\/button>/i, '')
+    .replace(loginPattern, FIREBASE_LOGIN_LOGIC + '\n\n    /* ============ Help & Support page logic')
+    .replace(appPattern, AUTH_AWARE_APP_LOGIC + '\n\n    const root = ReactDOM.createRoot')
     .replace(
       /function logout\(\)\{clearStoredLocation\(\);/,
-      'function logout(){try{if(window.firebase&&firebase.apps.length)firebase.auth().signOut().catch(function(){})}catch(error){}clearStoredLocation();'
+      "function logout(){try{if(window.firebase&&firebase.apps.length)firebase.auth().signOut().catch(function(){})}catch(error){}clearStoredLocation();"
     )
-    .replace('</head>',FIREBASE_CONFIG_SCRIPT+'\n'+DIET_ONBOARDING_ASSETS+'\n'+HOME_RUNTIME_PATCH+'\n</head>');
+    .replace('</head>', FIREBASE_CONFIG_SCRIPT + '\n' + DIET_ONBOARDING_ASSETS + '\n' + HOME_RUNTIME_PATCH + '\n</head>');
 }
 
-self.addEventListener('install', () => {
+self.addEventListener('install', function () {
   self.skipWaiting();
 });
 
-self.addEventListener('activate', event => {
-  event.waitUntil((async () => {
+self.addEventListener('activate', function (event) {
+  event.waitUntil((async function () {
     await self.clients.claim();
     const windows = await self.clients.matchAll({ type: 'window' });
-    await Promise.all(
-      windows.map(client => client.navigate(client.url).catch(() => null))
-    );
+    await Promise.all(windows.map(function (client) {
+      return client.navigate(client.url).catch(function () { return null; });
+    }));
   })());
 });
 
-self.addEventListener('fetch', event => {
+self.addEventListener('fetch', function (event) {
   if (event.request.mode !== 'navigate') return;
 
-  event.respondWith((async () => {
-    const response = await fetch(event.request);
+  event.respondWith((async function () {
+    const response = await fetch(event.request, { cache: 'no-store' });
     const contentType = response.headers.get('content-type') || '';
-
     if (!contentType.includes('text/html')) return response;
 
     const html = await response.text();
@@ -322,7 +273,7 @@ self.addEventListener('fetch', event => {
     return new Response(patchAppShell(html), {
       status: response.status,
       statusText: response.statusText,
-      headers
+      headers: headers
     });
   })());
 });
