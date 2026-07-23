@@ -223,6 +223,32 @@
   #page-login .login-continue-btn { padding: .9rem; }
 }
 
+/* The current authentication workflow is Google-only. Hide unfinished phone controls. */
+#page-login .login-label,
+#page-login .login-phone-row,
+#page-login .login-continue-btn,
+#page-login .login-or-row {
+  display: none !important;
+}
+
+#page-login .login-subtitle {
+  font-size: 0;
+}
+
+#page-login .login-subtitle::after {
+  content: "Sign in with Google to continue";
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+#page-login .login-google-btn {
+  margin-top: 1.4rem !important;
+}
+
+#page-login .login-msg:empty {
+  display: none;
+}
+
 /* Keep the location panel sharp while blurring and dimming the app behind it. */
 #page-home .location-sheet {
   background: rgba(0, 0, 0, .28);
