@@ -306,8 +306,7 @@
     scheduleAutoAttempt();
 
     const observer = new MutationObserver(scheduleAutoAttempt);
-    const root = document.getElementById('root');
-    if (root) observer.observe(root, { childList: true, subtree: true });
+    if (document.body) observer.observe(document.body, { childList: true, subtree: true });
     window.addEventListener('online', scheduleAutoAttempt);
     window.addEventListener('pageshow', scheduleAutoAttempt);
   }
