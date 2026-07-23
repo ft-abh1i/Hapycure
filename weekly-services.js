@@ -4,7 +4,22 @@
   const DASHBOARD_ID = 'hpAiDietDashboard';
   const OVERLAY_ID = 'hpAiDietOverlay';
   const USER_KEY = 'nutritiliousUser';
-  const MENU_VERSION = 'guruji-kitchen-menu-v1';
+  const MENU_VERSION = 'guruji-kitchen-menu-v2';
+
+  const UNAVAILABLE_ITEM = Object.freeze({
+    id: 'no-safe-menu-item',
+    name: 'No safe meal available',
+    description: 'No current kitchen item matches this meal slot and your saved avoid-list.',
+    kitchen: "Guruji's Kitchen",
+    types: [],
+    price: 0,
+    serving: 'Kitchen confirmation needed',
+    calories: 0,
+    protein: 0,
+    tags: [],
+    allergens: [],
+    unavailable: true
+  });
 
   const MENU = [
     { id: 'moong-dal-chilla', name: 'Moong Dal Chilla', kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 100, serving: '4 pieces', calories: 360, protein: 18, tags: ['protein', 'balanced', 'gluten-free'], allergens: [] },
@@ -24,8 +39,19 @@
   let plan = null;
   let selectedDay = currentDayIndex();
   let searchTerm = '';
+  let observer = null;
+  let mountQueued = false;
 
   window.HAPYCURE_AVAILABLE_MENU = MENU.map(item => ({ ...item }));
+
+  function safe(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 
   function getUser() {
     try { return JSON.parse(localStorage.getItem(USER_KEY) || '{}') || {}; }
@@ -34,8 +60,7 @@
 
   function accountId() {
     const user = getUser();
-    const raw = user.uid || user.email || user.phone || 'guest';
-    return String(raw).replace(/[^a-zA-Z0-9_-]/g, '_');
+    return String(user.uid || user.email || user.phone || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_');
   }
 
   function profileKey() { return `nutritiliousDietProfile_${accountId()}`; }
@@ -45,12 +70,6 @@
   function getProfile() {
     try { return JSON.parse(localStorage.getItem(profileKey()) || '{}') || {}; }
     catch (error) { return {}; }
-  }
-
-  function safe(value) {
-    return String(value == null ? '' : value)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
   }
 
   function currentDayIndex() {
@@ -66,19 +85,20 @@
     return date;
   }
 
-  function localDateValue(date) {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  }
-
   function addDays(date, count) {
     const copy = new Date(date);
     copy.setDate(copy.getDate() + count);
     return copy;
   }
 
+  function localDateValue(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
   function parseTime(value, fallbackMinutes) {
     if (!value || !/^\d{2}:\d{2}$/.test(value)) return fallbackMinutes;
     const [hours, minutes] = value.split(':').map(Number);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return fallbackMinutes;
     return (hours * 60) + minutes;
   }
 
@@ -95,7 +115,7 @@
     const sleep = parseTime(profile.sleepTime, 23 * 60);
     const breakfast = wake + 60;
     const lunch = Math.max(12 * 60 + 30, breakfast + 240);
-    const dinner = Math.min(sleep - 120, 21 * 60);
+    const dinner = Math.max(lunch + 180, Math.min(sleep - 120, 21 * 60));
     const snack = Math.round((lunch + dinner) / 2);
 
     if (count === 2) return [
@@ -126,22 +146,35 @@
     return slots;
   }
 
+  function normalizeAllergy(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    const aliases = {
+      dairy: 'milk',
+      'tree nuts': 'tree-nuts',
+      nuts: 'tree-nuts',
+      peanut: 'peanuts',
+      egg: 'eggs',
+      fish: 'seafood'
+    };
+    return aliases[normalized] || normalized;
+  }
+
   function allAllergies(profile) {
     const values = [];
     if (Array.isArray(profile.allergies)) values.push(...profile.allergies);
     if (Array.isArray(profile.customAllergies)) values.push(...profile.customAllergies);
     else if (profile.customAllergies) values.push(...String(profile.customAllergies).split(','));
-    return values.map(value => String(value).trim().toLowerCase()).filter(value => value && value !== 'none');
+    return [...new Set(values.map(normalizeAllergy).filter(value => value && value !== 'none'))];
   }
 
   function isItemAllowed(item, profile) {
     const allergies = allAllergies(profile);
     const diet = String(profile.dietType || '').toLowerCase();
-    if (diet === 'vegan' && item.allergens.some(allergen => allergen === 'milk' || allergen === 'eggs')) return false;
-    const normalizedAllergens = item.allergens.map(value => value.toLowerCase());
-    if (allergies.some(allergy => normalizedAllergens.includes(allergy))) return false;
-    const text = `${item.name} ${item.description || ''}`.toLowerCase();
-    if (allergies.some(allergy => allergy.length > 2 && text.includes(allergy))) return false;
+    const itemAllergens = item.allergens.map(normalizeAllergy);
+    if (diet === 'vegan' && itemAllergens.some(allergen => allergen === 'milk' || allergen === 'eggs')) return false;
+    if (allergies.some(allergy => itemAllergens.includes(allergy))) return false;
+    const itemText = normalizeAllergy(`${item.name} ${item.description || ''}`);
+    if (allergies.some(allergy => allergy.length > 2 && itemText.includes(allergy))) return false;
     return true;
   }
 
@@ -171,16 +204,17 @@
   }
 
   function availableForType(type, profile) {
-    let choices = MENU.filter(item => item.types.includes(type) && isItemAllowed(item, profile));
-    if (!choices.length) choices = MENU.filter(item => item.types.includes(type));
-    return choices.sort((a, b) => {
-      const difference = goalScore(b, profile.goal) - goalScore(a, profile.goal);
-      return difference || a.price - b.price;
-    });
+    return MENU
+      .filter(item => item.types.includes(type) && isItemAllowed(item, profile))
+      .sort((a, b) => {
+        const difference = goalScore(b, profile.goal) - goalScore(a, profile.goal);
+        return difference || a.price - b.price;
+      });
   }
 
   function chooseItem(type, profile, dayIndex, slotIndex, previousId) {
     const choices = availableForType(type, profile);
+    if (!choices.length) return UNAVAILABLE_ITEM;
     const seed = stringSeed(`${accountId()}-${localDateValue(startOfCurrentWeek())}-${type}`);
     let index = (seed + dayIndex + (slotIndex * 2)) % choices.length;
     if (choices.length > 1 && choices[index].id === previousId) index = (index + 1) % choices.length;
@@ -189,8 +223,12 @@
 
   function profileFingerprint(profile) {
     return JSON.stringify({
-      goal: profile.goal || '', dietType: profile.dietType || '', allergies: allAllergies(profile).sort(),
-      mealsPerDay: profile.mealsPerDay || '', wakeTime: profile.wakeTime || '', sleepTime: profile.sleepTime || '',
+      goal: profile.goal || '',
+      dietType: profile.dietType || '',
+      allergies: allAllergies(profile).sort(),
+      mealsPerDay: profile.mealsPerDay || '',
+      wakeTime: profile.wakeTime || '',
+      sleepTime: profile.sleepTime || '',
       activityLevel: profile.activityLevel || ''
     });
   }
@@ -198,18 +236,26 @@
   function generatePlan(profile) {
     const weekStart = startOfCurrentWeek();
     const slots = mealSlots(profile);
-    let previousId = '';
     const names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const shorts = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    let previousId = '';
+
     const days = Array.from({ length: 7 }, (_, dayIndex) => {
       const meals = slots.map((slot, slotIndex) => {
         const item = chooseItem(slot.type, profile, dayIndex, slotIndex, previousId);
-        previousId = item.id;
+        if (!item.unavailable) previousId = item.id;
         return { slotKey: slot.key, slotLabel: slot.label, type: slot.type, time: slot.time, itemId: item.id };
       });
       return { label: names[dayIndex], shortLabel: shorts[dayIndex], date: localDateValue(addDays(weekStart, dayIndex)), meals };
     });
-    return { version: MENU_VERSION, weekStart: localDateValue(weekStart), profileFingerprint: profileFingerprint(profile), createdAt: new Date().toISOString(), days };
+
+    return {
+      version: MENU_VERSION,
+      weekStart: localDateValue(weekStart),
+      profileFingerprint: profileFingerprint(profile),
+      createdAt: new Date().toISOString(),
+      days
+    };
   }
 
   function loadPlan() {
@@ -224,8 +270,15 @@
     return freshPlan;
   }
 
-  function itemById(id) { return MENU.find(item => item.id === id) || MENU[0]; }
-  function greeting() { const hour = new Date().getHours(); return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'; }
+  function itemById(id) {
+    if (id === UNAVAILABLE_ITEM.id) return UNAVAILABLE_ITEM;
+    return MENU.find(item => item.id === id) || UNAVAILABLE_ITEM;
+  }
+
+  function greeting() {
+    const hour = new Date().getHours();
+    return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  }
 
   function firstName() {
     const user = getUser();
@@ -241,8 +294,13 @@
     return ({ vegetarian: 'Vegetarian', eggetarian: 'Eggetarian', 'non-vegetarian': 'Non-vegetarian', vegan: 'Vegan' })[diet] || 'Flexible';
   }
 
-  function compactDate(value) { return new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' }).format(new Date(`${value}T12:00:00`)); }
-  function longDate(value) { return new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${value}T12:00:00`)); }
+  function compactDate(value) {
+    return new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' }).format(new Date(`${value}T12:00:00`));
+  }
+
+  function longDate(value) {
+    return new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${value}T12:00:00`));
+  }
 
   function slotIcon(type) {
     if (type === 'breakfast') return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"></path></svg>';
@@ -252,6 +310,7 @@
   }
 
   function recommendationLabel(item, profile) {
+    if (item.unavailable) return 'Needs review';
     if (profile.goal === 'gain-muscle' && item.tags.includes('protein')) return 'Protein-focused';
     if (profile.goal === 'lose-weight' && item.tags.includes('light')) return 'Lighter choice';
     if (item.tags.includes('balanced')) return 'Balanced pick';
@@ -261,17 +320,24 @@
   function dayTotals(day) {
     return day.meals.reduce((total, meal) => {
       const item = itemById(meal.itemId);
-      total.price += item.price; total.calories += item.calories; total.protein += item.protein;
+      total.price += item.price;
+      total.calories += item.calories;
+      total.protein += item.protein;
+      if (item.unavailable) total.unavailable += 1;
       return total;
-    }, { price: 0, calories: 0, protein: 0 });
+    }, { price: 0, calories: 0, protein: 0, unavailable: 0 });
   }
 
   function weeklyTotals() {
     return plan.days.reduce((total, day) => {
       const daily = dayTotals(day);
-      total.price += daily.price; total.calories += daily.calories; total.protein += daily.protein; total.meals += day.meals.length;
+      total.price += daily.price;
+      total.calories += daily.calories;
+      total.protein += daily.protein;
+      total.meals += day.meals.length;
+      total.unavailable += daily.unavailable;
       return total;
-    }, { price: 0, calories: 0, protein: 0, meals: 0 });
+    }, { price: 0, calories: 0, protein: 0, meals: 0, unavailable: 0 });
   }
 
   function profileNotice(profile) {
@@ -279,7 +345,7 @@
     const custom = allAllergies(profile).filter(value => !['milk', 'peanuts', 'tree-nuts', 'gluten', 'soy', 'eggs', 'seafood'].includes(value));
     const notices = [];
     if (custom.length) notices.push(`Confirm custom avoid-list with the kitchen: ${custom.join(', ')}.`);
-    if (conditions.length) notices.push('A health condition is saved in your profile; please review this general plan with a qualified professional.');
+    if (conditions.length) notices.push('A health condition is saved in your profile; review this general plan with a qualified professional.');
     return notices;
   }
 
@@ -290,23 +356,30 @@
   function mealCardMarkup(meal, dayIndex, profile) {
     const item = itemById(meal.itemId);
     const matches = !searchTerm || `${item.name} ${meal.slotLabel} ${item.description || ''}`.toLowerCase().includes(searchTerm);
-    return `<article class="hp-ai-meal-card${matches ? '' : ' hp-ai-search-hidden'}">
+    const unavailableClass = item.unavailable ? ' hp-ai-meal-unavailable' : '';
+    const replaceButton = item.unavailable
+      ? '<button type="button" data-ai-replace="' + dayIndex + ':' + safe(meal.slotKey) + '">Find safe option</button>'
+      : '<button type="button" data-ai-replace="' + dayIndex + ':' + safe(meal.slotKey) + '">Replace</button>';
+
+    return `<article class="hp-ai-meal-card${matches ? '' : ' hp-ai-search-hidden'}${unavailableClass}">
       <div class="hp-ai-meal-icon ${safe(meal.type)}">${slotIcon(meal.type)}</div>
       <div class="hp-ai-meal-copy">
-        <div class="hp-ai-meal-top"><span>${safe(meal.slotLabel)} · ${safe(meal.time)}</span><strong>₹${item.price}</strong></div>
+        <div class="hp-ai-meal-top"><span>${safe(meal.slotLabel)} · ${safe(meal.time)}</span><strong>${item.unavailable ? '—' : `₹${item.price}`}</strong></div>
         <h3>${safe(item.name)}</h3>${item.description ? `<p>${safe(item.description)}</p>` : ''}
-        <div class="hp-ai-meal-meta"><span>${safe(item.serving)}</span><span>~${item.calories} kcal</span><span>~${item.protein}g protein</span></div>
-        <div class="hp-ai-meal-footer"><span>${safe(recommendationLabel(item, profile))}</span><button type="button" data-ai-replace="${dayIndex}:${safe(meal.slotKey)}">Replace</button></div>
+        <div class="hp-ai-meal-meta"><span>${safe(item.serving)}</span>${item.unavailable ? '' : `<span>~${item.calories} kcal</span><span>~${item.protein}g protein</span>`}</div>
+        <div class="hp-ai-meal-footer"><span>${safe(recommendationLabel(item, profile))}</span>${replaceButton}</div>
       </div>
     </article>`;
   }
 
   function dashboardMarkup() {
     const profile = getProfile();
-    const day = plan.days[selectedDay];
+    const day = plan.days[selectedDay] || plan.days[0];
     const totals = dayTotals(day);
     const week = weeklyTotals();
     const notices = profileNotice(profile);
+    const orderDisabled = week.unavailable > 0;
+
     return `<section class="hp-ai-home" id="${DASHBOARD_ID}">
       <div class="hp-ai-hero">
         <div class="hp-ai-hero-top"><span class="hp-ai-kicker"><i>✦</i> AI MADE DIET</span><button class="hp-ai-refresh" type="button" data-ai-action="regenerate" aria-label="Regenerate weekly diet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5"></path><path d="M19 11a7 7 0 1 0 .3 4"></path></svg></button></div>
@@ -315,20 +388,21 @@
         <div class="hp-ai-profile-chips"><span>${safe(goalLabel(profile.goal))}</span><span>${safe(dietLabel(profile.dietType))}</span><span>${Number(profile.mealsPerDay) || 4} meals/day</span></div>
       </div>
       ${notices.length ? `<div class="hp-ai-safety-note"><strong>Before ordering</strong>${notices.map(notice => `<p>${safe(notice)}</p>`).join('')}</div>` : ''}
+      ${week.unavailable ? `<div class="hp-ai-safety-note"><strong>Plan needs attention</strong><p>${week.unavailable} meal slot${week.unavailable === 1 ? '' : 's'} could not be matched safely. Replace them before ordering.</p></div>` : ''}
       <div class="hp-ai-summary-row"><div><span>This week</span><strong>${week.meals}</strong><small>planned meals</small></div><div><span>Estimated total</span><strong>₹${week.price}</strong><small>menu pricing</small></div><div><span>Daily average</span><strong>~${Math.round(week.calories / 7)}</strong><small>kcal</small></div></div>
       <div class="hp-ai-section-head"><div><span>YOUR 7-DAY PLAN</span><h2>${safe(longDate(day.date))}</h2></div><button type="button" data-ai-action="full-week">View full week</button></div>
       <div class="hp-ai-day-tabs" aria-label="Select a day">${dayTabsMarkup()}</div>
       <div class="hp-ai-meal-list" id="hpAiMealList">${day.meals.map(meal => mealCardMarkup(meal, selectedDay, profile)).join('')}<div class="hp-ai-search-empty" id="hpAiSearchEmpty">No meal in this day matches your search.</div></div>
       <div class="hp-ai-day-total"><div><span>Today's plan</span><strong>${day.meals.length} meals · ~${totals.calories} kcal · ~${totals.protein}g protein</strong></div><strong>₹${totals.price}</strong></div>
-      <button class="hp-ai-order-button" type="button" data-ai-action="order"><span><small>7-day plan</small><strong>Order this week</strong></span><span>₹${week.price} <b>→</b></span></button>
+      <button class="hp-ai-order-button" type="button" data-ai-action="order" ${orderDisabled ? 'disabled aria-disabled="true"' : ''}><span><small>7-day plan</small><strong>${orderDisabled ? 'Replace unsafe meals first' : 'Order this week'}</strong></span><span>₹${week.price} <b>→</b></span></button>
       <p class="hp-ai-disclaimer">Calories and protein are frontend estimates until verified nutrition data and the recommendation API are connected. Hapycure does not replace medical advice.</p>
     </section>`;
   }
 
   function renderDashboard() {
     const dashboard = document.getElementById(DASHBOARD_ID);
-    if (!dashboard) return;
-    dashboard.parentElement.innerHTML = dashboardMarkup();
+    if (!dashboard || !plan) return;
+    dashboard.outerHTML = dashboardMarkup();
     syncSearchEmptyState();
   }
 
@@ -337,89 +411,142 @@
     page.insertAdjacentHTML('beforeend', `<section class="hp-ai-overlay" id="${OVERLAY_ID}" aria-hidden="true"><div class="hp-ai-overlay-backdrop" data-ai-action="close-overlay"></div><div class="hp-ai-overlay-panel" role="dialog" aria-modal="true" aria-labelledby="hpAiOverlayTitle"><div class="hp-ai-overlay-handle"></div><header><div><span id="hpAiOverlayEyebrow"></span><h2 id="hpAiOverlayTitle"></h2></div><button type="button" data-ai-action="close-overlay" aria-label="Close">×</button></header><div class="hp-ai-overlay-body" id="hpAiOverlayBody"></div></div></section>`);
   }
 
-  function openOverlay(eyebrow, title, content, expanded) {
+  function openOverlay(eyebrow, title, content, expanded = false) {
     const overlay = document.getElementById(OVERLAY_ID);
     if (!overlay) return;
-    overlay.querySelector('#hpAiOverlayEyebrow').textContent = eyebrow;
-    overlay.querySelector('#hpAiOverlayTitle').textContent = title;
-    overlay.querySelector('#hpAiOverlayBody').innerHTML = content;
+    const eyebrowNode = overlay.querySelector('#hpAiOverlayEyebrow');
+    const titleNode = overlay.querySelector('#hpAiOverlayTitle');
+    const bodyNode = overlay.querySelector('#hpAiOverlayBody');
+    if (!eyebrowNode || !titleNode || !bodyNode) return;
+    eyebrowNode.textContent = eyebrow;
+    titleNode.textContent = title;
+    bodyNode.innerHTML = content;
     overlay.classList.toggle('expanded', Boolean(expanded));
-    overlay.classList.add('show'); overlay.setAttribute('aria-hidden', 'false'); document.body.classList.add('hp-ai-overlay-open');
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('hp-ai-overlay-open');
   }
 
   function closeOverlay() {
     const overlay = document.getElementById(OVERLAY_ID);
     if (!overlay) return;
-    overlay.classList.remove('show', 'expanded'); overlay.setAttribute('aria-hidden', 'true'); document.body.classList.remove('hp-ai-overlay-open');
+    overlay.classList.remove('show', 'expanded');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('hp-ai-overlay-open');
   }
 
   function openReplace(dayIndex, slotKey) {
     const profile = getProfile();
-    const day = plan.days[dayIndex];
+    const day = plan && plan.days[dayIndex];
     const meal = day && day.meals.find(entry => entry.slotKey === slotKey);
     if (!meal) return;
     const current = itemById(meal.itemId);
     const choices = availableForType(meal.type, profile).filter(item => item.id !== current.id);
-    const content = `<div class="hp-ai-current-choice"><span>Current ${safe(meal.slotLabel)}</span><strong>${safe(current.name)}</strong></div><div class="hp-ai-replacement-list">${choices.map(item => `<button type="button" class="hp-ai-replacement" data-ai-use-replacement="${dayIndex}:${safe(slotKey)}:${safe(item.id)}"><span><strong>${safe(item.name)}</strong><small>${safe(item.serving)} · ~${item.protein}g protein</small></span><span>₹${item.price}<b>+</b></span></button>`).join('')}</div>${choices.length ? '' : '<p class="hp-ai-no-choice">No other menu item currently matches this meal and your saved avoid-list.</p>'}`;
-    openOverlay('PERSONALIZE MEAL', `Replace ${meal.slotLabel}`, content, false);
+    const list = choices.map(item => `<button type="button" class="hp-ai-replacement" data-ai-use-replacement="${dayIndex}:${safe(slotKey)}:${safe(item.id)}"><span><strong>${safe(item.name)}</strong><small>${safe(item.serving)} · ~${item.protein}g protein</small></span><span>₹${item.price}<b>+</b></span></button>`).join('');
+    const content = `<div class="hp-ai-current-choice"><span>Current ${safe(meal.slotLabel)}</span><strong>${safe(current.name)}</strong></div><div class="hp-ai-replacement-list">${list}</div>${choices.length ? '' : '<p class="hp-ai-no-choice">No other menu item currently matches this meal and your saved avoid-list.</p>'}`;
+    openOverlay('PERSONALIZE MEAL', `Replace ${meal.slotLabel}`, content);
   }
 
   function useReplacement(dayIndex, slotKey, itemId) {
-    const day = plan.days[dayIndex];
+    const day = plan && plan.days[dayIndex];
     const meal = day && day.meals.find(entry => entry.slotKey === slotKey);
-    if (!meal || !itemById(itemId)) return;
-    meal.itemId = itemId;
+    const replacement = MENU.find(item => item.id === itemId);
+    if (!meal || !replacement || !isItemAllowed(replacement, getProfile())) return;
+    meal.itemId = replacement.id;
     localStorage.setItem(planKey(), JSON.stringify(plan));
-    closeOverlay(); selectedDay = dayIndex; renderDashboard();
+    closeOverlay();
+    selectedDay = dayIndex;
+    renderDashboard();
   }
 
   function fullWeekMarkup() {
-    return `<div class="hp-ai-full-week">${plan.days.map((day, dayIndex) => { const total = dayTotals(day); return `<article class="hp-ai-week-day"><header><div><span>${safe(compactDate(day.date))}</span><h3>${safe(day.label)}</h3></div><strong>₹${total.price}</strong></header><div>${day.meals.map(meal => { const item = itemById(meal.itemId); return `<button type="button" data-ai-jump-day="${dayIndex}"><span>${safe(meal.time)}</span><strong>${safe(item.name)}</strong><small>${safe(meal.slotLabel)}</small></button>`; }).join('')}</div></article>`; }).join('')}</div>`;
+    return `<div class="hp-ai-full-week">${plan.days.map((day, dayIndex) => {
+      const total = dayTotals(day);
+      return `<article class="hp-ai-week-day"><header><div><span>${safe(compactDate(day.date))}</span><h3>${safe(day.label)}</h3></div><strong>₹${total.price}</strong></header><div>${day.meals.map(meal => {
+        const item = itemById(meal.itemId);
+        return `<button type="button" data-ai-jump-day="${dayIndex}"><span>${safe(meal.time)}</span><strong>${safe(item.name)}</strong><small>${safe(meal.slotLabel)}</small></button>`;
+      }).join('')}</div></article>`;
+    }).join('')}</div>`;
   }
 
   function openOrderSummary() {
     const totals = weeklyTotals();
+    if (totals.unavailable) return;
     const content = `<div class="hp-ai-order-summary"><div class="hp-ai-order-success">✓</div><h3>Your AI plan is ready</h3><p>${safe(compactDate(plan.days[0].date))} – ${safe(compactDate(plan.days[6].date))} · ${totals.meals} meals</p><div class="hp-ai-order-breakdown"><span><small>Menu subtotal</small><strong>₹${totals.price}</strong></span><span><small>Delivery & final pricing</small><strong>At checkout</strong></span></div><button class="hp-ai-confirm-order" type="button" data-ai-action="save-order">Continue with this plan</button><small>Payment and kitchen confirmation will be connected when the ordering API is set up.</small></div>`;
-    openOverlay('WEEKLY ORDER', 'Review your plan', content, false);
+    openOverlay('WEEKLY ORDER', 'Review your plan', content);
   }
 
   function saveOrderDraft() {
     const totals = weeklyTotals();
-    localStorage.setItem(orderDraftKey(), JSON.stringify({ source: 'ai-made-diet', menuVersion: MENU_VERSION, plan, estimatedMenuTotal: totals.price, meals: totals.meals, status: 'ready-for-api-checkout', createdAt: new Date().toISOString() }));
+    if (totals.unavailable) return;
+    localStorage.setItem(orderDraftKey(), JSON.stringify({
+      source: 'ai-made-diet',
+      menuVersion: MENU_VERSION,
+      plan,
+      estimatedMenuTotal: totals.price,
+      meals: totals.meals,
+      status: 'ready-for-api-checkout',
+      createdAt: new Date().toISOString()
+    }));
     const body = document.getElementById('hpAiOverlayBody');
-    if (body) body.innerHTML = `<div class="hp-ai-order-summary saved"><div class="hp-ai-order-success">✓</div><h3>Weekly plan saved</h3><p>Your selected AI diet is ready for checkout integration.</p><button class="hp-ai-confirm-order" type="button" data-ai-action="close-overlay">Done</button></div>`;
+    if (body) body.innerHTML = '<div class="hp-ai-order-summary saved"><div class="hp-ai-order-success">✓</div><h3>Weekly plan saved</h3><p>Your selected AI diet is ready for checkout integration.</p><button class="hp-ai-confirm-order" type="button" data-ai-action="close-overlay">Done</button></div>';
   }
 
   function regeneratePlan() {
     localStorage.removeItem(planKey());
     plan = generatePlan(getProfile());
     localStorage.setItem(planKey(), JSON.stringify(plan));
-    selectedDay = currentDayIndex(); renderDashboard();
+    selectedDay = currentDayIndex();
+    renderDashboard();
   }
 
   function syncSearchEmptyState() {
     const list = document.getElementById('hpAiMealList');
     const empty = document.getElementById('hpAiSearchEmpty');
-    if (list && empty) empty.classList.toggle('show', list.querySelectorAll('.hp-ai-meal-card:not(.hp-ai-search-hidden)').length === 0);
+    if (!list || !empty) return;
+    empty.classList.toggle('show', list.querySelectorAll('.hp-ai-meal-card:not(.hp-ai-search-hidden)').length === 0);
   }
 
   function applySearch(value) {
     searchTerm = String(value || '').trim().toLowerCase();
-    document.querySelectorAll('#hpAiMealList .hp-ai-meal-card').forEach(card => card.classList.toggle('hp-ai-search-hidden', Boolean(searchTerm) && !card.textContent.toLowerCase().includes(searchTerm)));
+    document.querySelectorAll('#hpAiMealList .hp-ai-meal-card').forEach(card => {
+      card.classList.toggle('hp-ai-search-hidden', Boolean(searchTerm) && !card.textContent.toLowerCase().includes(searchTerm));
+    });
     syncSearchEmptyState();
   }
 
   function handleClick(event) {
     const dayButton = event.target.closest('[data-ai-day]');
-    if (dayButton) { selectedDay = Number(dayButton.dataset.aiDay); renderDashboard(); return; }
+    if (dayButton) {
+      selectedDay = Math.max(0, Math.min(6, Number(dayButton.dataset.aiDay) || 0));
+      renderDashboard();
+      return;
+    }
+
     const replaceButton = event.target.closest('[data-ai-replace]');
-    if (replaceButton) { const [dayIndex, slotKey] = replaceButton.dataset.aiReplace.split(':'); openReplace(Number(dayIndex), slotKey); return; }
+    if (replaceButton) {
+      const [dayIndex, slotKey] = replaceButton.dataset.aiReplace.split(':');
+      openReplace(Number(dayIndex), slotKey);
+      return;
+    }
+
     const replacement = event.target.closest('[data-ai-use-replacement]');
-    if (replacement) { const [dayIndex, slotKey, itemId] = replacement.dataset.aiUseReplacement.split(':'); useReplacement(Number(dayIndex), slotKey, itemId); return; }
+    if (replacement) {
+      const [dayIndex, slotKey, itemId] = replacement.dataset.aiUseReplacement.split(':');
+      useReplacement(Number(dayIndex), slotKey, itemId);
+      return;
+    }
+
     const jump = event.target.closest('[data-ai-jump-day]');
-    if (jump) { selectedDay = Number(jump.dataset.aiJumpDay); closeOverlay(); renderDashboard(); return; }
+    if (jump) {
+      selectedDay = Math.max(0, Math.min(6, Number(jump.dataset.aiJumpDay) || 0));
+      closeOverlay();
+      renderDashboard();
+      return;
+    }
+
     const actionButton = event.target.closest('[data-ai-action]');
-    if (!actionButton) return;
+    if (!actionButton || actionButton.disabled) return;
     const action = actionButton.dataset.aiAction;
     if (action === 'regenerate') regeneratePlan();
     else if (action === 'full-week') openOverlay('AI WEEKLY DIET', 'Your full week', fullWeekMarkup(), true);
@@ -428,38 +555,76 @@
     else if (action === 'close-overlay') closeOverlay();
   }
 
-  function mount() {
-    const page = document.getElementById('page-home');
-    if (!page) return;
-    const main = page.querySelector(':scope > .app > main');
-    if (!main) return;
-    if (!main.querySelector(`#${DASHBOARD_ID}`)) {
-      plan = loadPlan();
-      main.replaceChildren();
-      main.insertAdjacentHTML('beforeend', dashboardMarkup());
-    }
-    ensureOverlay(page);
+  function preserveLegacyHome(main) {
+    Array.from(main.children).forEach(child => {
+      if (child.id === DASHBOARD_ID) return;
+      if (child.dataset.hpLegacyHome === 'true') return;
+      child.dataset.hpLegacyHome = 'true';
+      child.hidden = true;
+      child.setAttribute('aria-hidden', 'true');
+    });
+  }
+
+  function bindHeaderControls(page, main) {
     const searchInput = page.querySelector('#searchInput');
     if (searchInput && searchInput.dataset.aiDietSearchBound !== 'true') {
       searchInput.dataset.aiDietSearchBound = 'true';
       searchInput.placeholder = 'Search meals in your AI diet';
       searchInput.addEventListener('input', event => applySearch(event.target.value));
     }
+
     const vegToggle = page.querySelector('#vegToggle');
     if (vegToggle) {
       vegToggle.checked = true;
       vegToggle.disabled = true;
+      vegToggle.setAttribute('aria-disabled', 'true');
       const vegLabel = page.querySelector('#onlyVegText');
       if (vegLabel) vegLabel.textContent = 'Veg Menu';
     }
+
+    const homeButton = page.querySelector('#homeBtn');
+    if (homeButton && homeButton.dataset.aiHomeBound !== 'true') {
+      homeButton.dataset.aiHomeBound = 'true';
+      homeButton.addEventListener('click', () => main.scrollTo({ top: 0, behavior: 'smooth' }));
+    }
+  }
+
+  function mount() {
+    mountQueued = false;
+    const page = document.getElementById('page-home');
+    if (!page) return;
+    const main = page.querySelector(':scope > .app > main');
+    if (!main) return;
+
+    preserveLegacyHome(main);
+    if (!main.querySelector(`#${DASHBOARD_ID}`)) {
+      plan = loadPlan();
+      main.insertAdjacentHTML('afterbegin', dashboardMarkup());
+    } else if (!plan) {
+      plan = loadPlan();
+    }
+
+    ensureOverlay(page);
+    bindHeaderControls(page, main);
+    syncSearchEmptyState();
+  }
+
+  function queueMount() {
+    if (mountQueued) return;
+    mountQueued = true;
+    requestAnimationFrame(mount);
   }
 
   function boot() {
-    mount();
+    queueMount();
     const root = document.getElementById('root');
-    if (root) new MutationObserver(mount).observe(root, { childList: true, subtree: true });
+    if (root && !observer) {
+      observer = new MutationObserver(queueMount);
+      observer.observe(root, { childList: true, subtree: true });
+    }
     document.addEventListener('click', handleClick);
     document.addEventListener('keydown', event => { if (event.key === 'Escape') closeOverlay(); });
+    window.addEventListener('pageshow', queueMount);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
