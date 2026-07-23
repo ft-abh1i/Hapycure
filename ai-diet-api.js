@@ -10,11 +10,13 @@
   const MIN_SAVING_MS = 2000;
   const MIN_GENERATING_MS = 1250;
   const REQUEST_TIMEOUT_MS = 32000;
+  const PROFILE_SAVE_TIMEOUT_MS = 15000;
 
   let inFlight = false;
   let autoAttemptedFor = '';
   let retryTimer = null;
   let firstFlowPoll = null;
+  let firstFlowDeadline = null;
 
   const firstFlow = {
     active: false,
@@ -42,6 +44,7 @@
   function completionKey() { return `${profileKey()}_completed`; }
   function planKey() { return `nutritiliousAiMenuPlan_${accountId()}`; }
   function apiStateKey() { return `nutritiliousAiApiState_${accountId()}`; }
+  function pendingFlowKey() { return `nutritiliousAiFirstFlowPending_${accountId()}`; }
 
   function getJson(key, fallback = null) {
     try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
@@ -72,7 +75,8 @@
     return [...new Set(values.map(normalizeAllergy).filter(value => value && value !== 'none'))];
   }
 
-  function profileFingerprint(profile) {
+  // Must stay compatible with weekly-services.js so an AI plan survives reload.
+  function planFingerprint(profile) {
     return JSON.stringify({
       goal: profile.goal || '',
       dietType: profile.dietType || '',
@@ -81,6 +85,28 @@
       wakeTime: profile.wakeTime || '',
       sleepTime: profile.sleepTime || '',
       activityLevel: profile.activityLevel || ''
+    });
+  }
+
+  // Includes every profile field that can affect Gemini recommendations.
+  function recommendationFingerprint(profile) {
+    const conditions = Array.isArray(profile.healthConditions)
+      ? [...profile.healthConditions].map(String).sort()
+      : [];
+    return JSON.stringify({
+      goal: profile.goal || '',
+      sex: profile.sex || '',
+      age: Number(profile.age) || null,
+      heightCm: Number(profile.heightCm) || null,
+      weightKg: Number(profile.weightKg) || null,
+      targetWeightKg: Number(profile.targetWeightKg) || null,
+      dietType: profile.dietType || '',
+      allergies: allAllergies(profile).sort(),
+      activityLevel: profile.activityLevel || '',
+      mealsPerDay: Number(profile.mealsPerDay) || 4,
+      wakeTime: profile.wakeTime || '',
+      sleepTime: profile.sleepTime || '',
+      healthConditions: conditions
     });
   }
 
@@ -177,7 +203,7 @@
   }
 
   function currentSignature(profile, schedule) {
-    return `${profileFingerprint(profile)}|${schedule[0]?.date || localDateValue(startOfCurrentWeek())}|${MENU_VERSION}`;
+    return `${recommendationFingerprint(profile)}|${schedule[0]?.date || localDateValue(startOfCurrentWeek())}|${MENU_VERSION}`;
   }
 
   function sanitizedProfile(profile) {
@@ -206,95 +232,40 @@
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
-      #page-home .hp-ai-api-status {
-        display:flex;align-items:center;gap:9px;margin:11px 1px 0;padding:10px 12px;
-        border:1px solid #e7dfdc;border-radius:14px;background:rgba(255,255,255,.82);
-        color:#685d58;font-size:10.5px;line-height:1.35;font-weight:750;
-      }
-      #page-home .hp-ai-api-status::before {
-        content:'';width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:#96908c;
-      }
-      #page-home .hp-ai-api-status.loading::before {
-        border:2px solid #ead7d3;border-top-color:#a52c26;background:transparent;
-        animation:hpAiApiSpin .75s linear infinite;
-      }
-      #page-home .hp-ai-api-status.success::before {background:#2f9e44}
-      #page-home .hp-ai-api-status.error::before {background:#d87b20}
-      @keyframes hpAiApiSpin {to{transform:rotate(360deg)}}
-
-      #${FLOW_ID} {
-        position:fixed;inset:0;z-index:99999;display:grid;place-items:center;overflow:hidden;
-        padding:24px;background:#fbf8f5;color:#241c19;text-align:center;
-        font-family:Inter,-apple-system,BlinkMacSystemFont,Arial,sans-serif;
-      }
-      #${FLOW_ID}::before,#${FLOW_ID}::after {
-        content:'';position:absolute;border-radius:50%;pointer-events:none;
-      }
-      #${FLOW_ID}::before {
-        width:320px;height:320px;top:-190px;right:-150px;background:rgba(131,30,25,.08);
-      }
-      #${FLOW_ID}::after {
-        width:250px;height:250px;bottom:-170px;left:-130px;background:rgba(131,30,25,.06);
-      }
-      #${FLOW_ID} .hp-gen-shell {position:relative;z-index:1;width:min(100%,390px)}
-      #${FLOW_ID} .hp-gen-logo {width:146px;height:48px;margin:0 auto 30px;object-fit:contain}
-      #${FLOW_ID} .hp-gen-visual {
-        position:relative;width:154px;height:154px;margin:0 auto 31px;display:grid;place-items:center;
-      }
-      #${FLOW_ID} .hp-gen-ring {
-        position:absolute;inset:0;border:1px solid rgba(131,30,25,.16);border-radius:50%;
-        animation:hpGenPulse 2.1s ease-in-out infinite;
-      }
-      #${FLOW_ID} .hp-gen-ring:nth-child(2) {inset:17px;animation-delay:.28s}
-      #${FLOW_ID} .hp-gen-orbit {
-        position:absolute;inset:7px;border-radius:50%;border-top:2px solid #8d211c;
-        border-right:2px solid transparent;animation:hpGenOrbit 1.15s linear infinite;
-      }
-      #${FLOW_ID} .hp-gen-core {
-        width:76px;height:76px;display:grid;place-items:center;border-radius:25px;
-        background:linear-gradient(145deg,#711713,#a4322b);color:#fff;
-        box-shadow:0 18px 38px rgba(105,24,20,.24);font-size:31px;font-weight:900;
-        transform:rotate(8deg);
-      }
-      #${FLOW_ID} .hp-gen-core span {transform:rotate(-8deg)}
-      #${FLOW_ID} .hp-gen-eyebrow {
-        margin:0 0 9px;color:#9b2a24;font-size:10px;font-weight:950;letter-spacing:1.5px;
-      }
-      #${FLOW_ID} h1 {
-        max-width:350px;margin:0 auto;color:#241c19;font-size:29px;line-height:1.08;
-        letter-spacing:-1px;font-weight:950;
-      }
-      #${FLOW_ID} .hp-gen-message {
-        min-height:42px;max-width:310px;margin:13px auto 0;color:#776b66;font-size:13px;
-        line-height:1.55;font-weight:650;
-      }
-      #${FLOW_ID} .hp-gen-progress {
-        height:5px;margin:27px auto 0;overflow:hidden;border-radius:999px;background:#eee4df;
-      }
-      #${FLOW_ID} .hp-gen-progress span {
-        display:block;width:34%;height:100%;border-radius:inherit;background:#8d211c;
-        animation:hpGenProgress 1.45s ease-in-out infinite;
-      }
-      #${FLOW_ID} .hp-gen-steps {
-        display:flex;justify-content:center;gap:7px;margin-top:17px;color:#9a8e88;font-size:9px;font-weight:850;
-      }
-      #${FLOW_ID} .hp-gen-steps span {padding:7px 9px;border-radius:999px;background:#f1ebe7}
-      #${FLOW_ID} .hp-gen-steps span.done {background:#e9f6ec;color:#287b3b}
-      #${FLOW_ID} .hp-gen-steps span.active {background:#f7e5e2;color:#952821}
-      #${FLOW_ID}.ready .hp-gen-orbit {animation-duration:2.4s}
-      #${FLOW_ID}.ready .hp-gen-core {background:linear-gradient(145deg,#287b3b,#3d9c57)}
-      @keyframes hpGenOrbit {to{transform:rotate(360deg)}}
-      @keyframes hpGenPulse {0%,100%{transform:scale(.93);opacity:.42}50%{transform:scale(1.04);opacity:1}}
-      @keyframes hpGenProgress {0%{transform:translateX(-110%)}50%{transform:translateX(95%)}100%{transform:translateX(300%)}}
-      @media (max-height:620px) {
-        #${FLOW_ID} .hp-gen-logo{margin-bottom:18px}
-        #${FLOW_ID} .hp-gen-visual{width:125px;height:125px;margin-bottom:20px}
-        #${FLOW_ID} h1{font-size:25px}
-        #${FLOW_ID} .hp-gen-progress{margin-top:18px}
-      }
-      @media (prefers-reduced-motion:reduce) {
-        #${FLOW_ID} *,#page-home .hp-ai-api-status::before{animation-duration:2.5s!important}
-      }
+      #page-home .hp-ai-api-status{display:flex;align-items:center;gap:9px;margin:11px 1px 0;padding:10px 12px;border:1px solid #e7dfdc;border-radius:14px;background:rgba(255,255,255,.82);color:#685d58;font-size:10.5px;line-height:1.35;font-weight:750}
+      #page-home .hp-ai-api-status::before{content:'';width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:#96908c}
+      #page-home .hp-ai-api-status.loading::before{border:2px solid #ead7d3;border-top-color:#a52c26;background:transparent;animation:hpAiApiSpin .75s linear infinite}
+      #page-home .hp-ai-api-status.success::before{background:#2f9e44}
+      #page-home .hp-ai-api-status.error::before{background:#d87b20}
+      @keyframes hpAiApiSpin{to{transform:rotate(360deg)}}
+      #${FLOW_ID}{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;overflow:hidden;padding:24px;background:#fbf8f5;color:#241c19;text-align:center;font-family:Inter,-apple-system,BlinkMacSystemFont,Arial,sans-serif}
+      #${FLOW_ID}::before,#${FLOW_ID}::after{content:'';position:absolute;border-radius:50%;pointer-events:none}
+      #${FLOW_ID}::before{width:320px;height:320px;top:-190px;right:-150px;background:rgba(131,30,25,.08)}
+      #${FLOW_ID}::after{width:250px;height:250px;bottom:-170px;left:-130px;background:rgba(131,30,25,.06)}
+      #${FLOW_ID} .hp-gen-shell{position:relative;z-index:1;width:min(100%,390px)}
+      #${FLOW_ID} .hp-gen-logo{width:146px;height:48px;margin:0 auto 30px;object-fit:contain}
+      #${FLOW_ID} .hp-gen-visual{position:relative;width:154px;height:154px;margin:0 auto 31px;display:grid;place-items:center}
+      #${FLOW_ID} .hp-gen-ring{position:absolute;inset:0;border:1px solid rgba(131,30,25,.16);border-radius:50%;animation:hpGenPulse 2.1s ease-in-out infinite}
+      #${FLOW_ID} .hp-gen-ring:nth-child(2){inset:17px;animation-delay:.28s}
+      #${FLOW_ID} .hp-gen-orbit{position:absolute;inset:7px;border-radius:50%;border-top:2px solid #8d211c;border-right:2px solid transparent;animation:hpGenOrbit 1.15s linear infinite}
+      #${FLOW_ID} .hp-gen-core{width:76px;height:76px;display:grid;place-items:center;border-radius:25px;background:linear-gradient(145deg,#711713,#a4322b);color:#fff;box-shadow:0 18px 38px rgba(105,24,20,.24);font-size:31px;font-weight:900;transform:rotate(8deg)}
+      #${FLOW_ID} .hp-gen-core span{transform:rotate(-8deg)}
+      #${FLOW_ID} .hp-gen-eyebrow{margin:0 0 9px;color:#9b2a24;font-size:10px;font-weight:950;letter-spacing:1.5px}
+      #${FLOW_ID} h1{max-width:350px;margin:0 auto;color:#241c19;font-size:29px;line-height:1.08;letter-spacing:-1px;font-weight:950}
+      #${FLOW_ID} .hp-gen-message{min-height:42px;max-width:310px;margin:13px auto 0;color:#776b66;font-size:13px;line-height:1.55;font-weight:650}
+      #${FLOW_ID} .hp-gen-progress{height:5px;margin:27px auto 0;overflow:hidden;border-radius:999px;background:#eee4df}
+      #${FLOW_ID} .hp-gen-progress span{display:block;width:34%;height:100%;border-radius:inherit;background:#8d211c;animation:hpGenProgress 1.45s ease-in-out infinite}
+      #${FLOW_ID} .hp-gen-steps{display:flex;justify-content:center;gap:7px;margin-top:17px;color:#9a8e88;font-size:9px;font-weight:850}
+      #${FLOW_ID} .hp-gen-steps span{padding:7px 9px;border-radius:999px;background:#f1ebe7}
+      #${FLOW_ID} .hp-gen-steps span.done{background:#e9f6ec;color:#287b3b}
+      #${FLOW_ID} .hp-gen-steps span.active{background:#f7e5e2;color:#952821}
+      #${FLOW_ID}.ready .hp-gen-orbit{animation-duration:2.4s}
+      #${FLOW_ID}.ready .hp-gen-core{background:linear-gradient(145deg,#287b3b,#3d9c57)}
+      @keyframes hpGenOrbit{to{transform:rotate(360deg)}}
+      @keyframes hpGenPulse{0%,100%{transform:scale(.93);opacity:.42}50%{transform:scale(1.04);opacity:1}}
+      @keyframes hpGenProgress{0%{transform:translateX(-110%)}50%{transform:translateX(95%)}100%{transform:translateX(300%)}}
+      @media(max-height:620px){#${FLOW_ID} .hp-gen-logo{margin-bottom:18px}#${FLOW_ID} .hp-gen-visual{width:125px;height:125px;margin-bottom:20px}#${FLOW_ID} h1{font-size:25px}#${FLOW_ID} .hp-gen-progress{margin-top:18px}}
+      @media(prefers-reduced-motion:reduce){#${FLOW_ID} *,#page-home .hp-ai-api-status::before{animation-duration:2.5s!important}}
     `;
     document.head.appendChild(style);
   }
@@ -311,7 +282,6 @@
     if (!status) {
       status = document.createElement('div');
       status.id = STATUS_ID;
-      status.className = 'hp-ai-api-status';
       host.insertAdjacentElement('afterend', status);
     }
     status.className = `hp-ai-api-status ${state}`.trim();
@@ -336,10 +306,7 @@
     screen.innerHTML = `
       <div class="hp-gen-shell">
         <img class="hp-gen-logo" src="./hepicure_logo_transparent.png" alt="Hepicure">
-        <div class="hp-gen-visual" aria-hidden="true">
-          <span class="hp-gen-ring"></span><span class="hp-gen-ring"></span><span class="hp-gen-orbit"></span>
-          <div class="hp-gen-core"><span>✦</span></div>
-        </div>
+        <div class="hp-gen-visual" aria-hidden="true"><span class="hp-gen-ring"></span><span class="hp-gen-ring"></span><span class="hp-gen-orbit"></span><div class="hp-gen-core"><span>✦</span></div></div>
         <p class="hp-gen-eyebrow" id="hpGenEyebrow">PERSONAL DIET SETUP</p>
         <h1 id="hpGenTitle">Saving your profile</h1>
         <p class="hp-gen-message" id="hpGenMessage">Securing your preferences and health details…</p>
@@ -354,7 +321,7 @@
 
   function showGeneratingState() {
     const screen = createFlowScreen();
-    firstFlow.generatingAt = Date.now();
+    if (!firstFlow.generatingAt) firstFlow.generatingAt = Date.now();
     screen.querySelector('#hpGenEyebrow').textContent = 'HEPICURE AI';
     screen.querySelector('#hpGenTitle').textContent = 'Hepicure AI is generating your diet plan for you';
     screen.querySelector('#hpGenMessage').textContent = 'Matching your profile with meals currently available in our kitchen…';
@@ -362,7 +329,6 @@
     screen.querySelector('#hpGenStepProfile').textContent = 'Profile saved';
     screen.querySelector('#hpGenStepMenu').className = 'active';
     screen.querySelector('#hpGenStepPlan').className = '';
-
     window.setTimeout(() => {
       const current = document.getElementById(FLOW_ID);
       if (!current || current.classList.contains('ready')) return;
@@ -383,6 +349,25 @@
     screen.querySelector('#hpGenStepProfile').className = 'done';
     screen.querySelector('#hpGenStepMenu').className = 'done';
     screen.querySelector('#hpGenStepPlan').className = 'done';
+  }
+
+  function clearFirstFlowTimers() {
+    if (firstFlowPoll) window.clearInterval(firstFlowPoll);
+    if (firstFlowDeadline) window.clearTimeout(firstFlowDeadline);
+    if (firstFlow.generatingTimer) window.clearTimeout(firstFlow.generatingTimer);
+    firstFlowPoll = null;
+    firstFlowDeadline = null;
+    firstFlow.generatingTimer = null;
+  }
+
+  function resetFirstFlow({ keepScreen = false } = {}) {
+    clearFirstFlowTimers();
+    firstFlow.active = false;
+    firstFlow.requestStarted = false;
+    firstFlow.submitAt = 0;
+    firstFlow.generatingAt = 0;
+    sessionStorage.removeItem(pendingFlowKey());
+    if (!keepScreen) document.getElementById(FLOW_ID)?.remove();
   }
 
   function menuIds() {
@@ -422,16 +407,24 @@
     if (!firstFlow.generatingAt) showGeneratingState();
     await wait(MIN_GENERATING_MS - (Date.now() - firstFlow.generatingAt));
     showReadyState(aiReady);
+    sessionStorage.removeItem(pendingFlowKey());
     await wait(850);
     window.location.reload();
   }
 
   async function requestGeminiPlan({ force = false, firstRun = false } = {}) {
-    if (inFlight) return false;
-    if (!navigator.onLine || localStorage.getItem(completionKey()) !== 'true') return false;
+    if (inFlight) {
+      if (firstRun) await finishFirstFlow(false);
+      return false;
+    }
+    if (localStorage.getItem(completionKey()) !== 'true') return false;
 
     const profile = getProfile();
-    if (!profile || !profile.goal || !profile.dietType) return false;
+    if (!profile || !profile.goal || !profile.dietType) {
+      if (firstRun) await finishFirstFlow(false);
+      return false;
+    }
+
     const schedule = buildSchedule(profile);
     const signature = currentSignature(profile, schedule);
     const localPlan = getPlan();
@@ -444,6 +437,16 @@
       }
       return true;
     }
+
+    if (!navigator.onLine) {
+      if (firstRun) await finishFirstFlow(false);
+      else {
+        setStatus('You are offline. Your safe local plan is still active.', 'error');
+        hideStatusLater(6000);
+      }
+      return false;
+    }
+
     if (!force && retryBlocked(signature)) return false;
     if (!force && !firstRun && autoAttemptedFor === signature) return false;
 
@@ -463,13 +466,15 @@
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.ok) throw new Error(payload.error || 'AI recommendation failed.');
+      if (payload.menuVersion !== MENU_VERSION) throw new Error('The kitchen menu changed. Please try again.');
       if (!validApiDays(payload.days, schedule)) throw new Error('The AI response did not match the current menu schedule.');
 
       const aiPlan = {
         ...(localPlan || {}),
         version: MENU_VERSION,
         weekStart: schedule[0].date,
-        profileFingerprint: profileFingerprint(profile),
+        profileFingerprint: planFingerprint(profile),
+        aiRecommendationFingerprint: recommendationFingerprint(profile),
         createdAt: localPlan?.createdAt || new Date().toISOString(),
         aiSource: 'gemini',
         aiModel: payload.model || '',
@@ -503,9 +508,9 @@
 
       if (firstRun) await finishFirstFlow(false);
       else {
-        const message = error && error.name === 'AbortError'
+        const message = error?.name === 'AbortError'
           ? 'Gemini timed out. Your safe local plan is still active.'
-          : (error && error.message ? error.message : 'Gemini is unavailable. Your safe local plan is still active.');
+          : (error?.message || 'Gemini is unavailable. Your safe local plan is still active.');
         setStatus(message, 'error');
         hideStatusLater(7500);
       }
@@ -516,30 +521,58 @@
     }
   }
 
-  function captureProfileSubmit(event) {
-    const button = event.target.closest('#hpNextBtn');
-    if (!button || firstFlow.active || localStorage.getItem(completionKey()) === 'true') return;
-    const label = button.querySelector('span')?.textContent || button.textContent || '';
-    if (!/create my profile/i.test(label)) return;
-
+  function startFirstFlow(submitAt = Date.now()) {
+    if (firstFlow.active) return;
     firstFlow.active = true;
-    firstFlow.submitAt = Date.now();
+    firstFlow.requestStarted = false;
+    firstFlow.submitAt = Number(submitAt) || Date.now();
+    firstFlow.generatingAt = 0;
+    sessionStorage.setItem(pendingFlowKey(), String(firstFlow.submitAt));
     createFlowScreen();
-    firstFlow.generatingTimer = window.setTimeout(showGeneratingState, MIN_SAVING_MS);
+    firstFlow.generatingTimer = window.setTimeout(showGeneratingState, Math.max(0, (firstFlow.submitAt + MIN_SAVING_MS) - Date.now()));
+
     firstFlowPoll = window.setInterval(() => {
       if (!firstFlow.active || firstFlow.requestStarted) return;
       if (localStorage.getItem(completionKey()) !== 'true') return;
       const saved = getProfile();
-      if (!saved || !saved.goal || !saved.dietType) return;
+      if (!saved?.goal || !saved?.dietType) return;
       firstFlow.requestStarted = true;
-      window.clearInterval(firstFlowPoll);
+      if (firstFlowPoll) window.clearInterval(firstFlowPoll);
       requestGeminiPlan({ force: true, firstRun: true });
     }, 100);
+
+    firstFlowDeadline = window.setTimeout(() => {
+      if (!firstFlow.active || firstFlow.requestStarted) return;
+      const screen = document.getElementById(FLOW_ID);
+      if (screen) {
+        screen.querySelector('#hpGenTitle').textContent = 'Profile could not be saved';
+        screen.querySelector('#hpGenMessage').textContent = 'Please review your details and try again.';
+      }
+      window.setTimeout(() => resetFirstFlow(), 1200);
+    }, PROFILE_SAVE_TIMEOUT_MS);
+  }
+
+  function captureProfileSubmit(event) {
+    const button = event.target.closest('#hpNextBtn');
+    if (!button || button.disabled || firstFlow.active || localStorage.getItem(completionKey()) === 'true') return;
+    const label = button.querySelector('span')?.textContent || button.textContent || '';
+    if (!/create my profile/i.test(label)) return;
+    startFirstFlow(Date.now());
+  }
+
+  function resumePendingFirstFlow() {
+    const pendingAt = Number(sessionStorage.getItem(pendingFlowKey()) || 0);
+    if (!pendingAt) return;
+    if (localStorage.getItem(completionKey()) !== 'true') {
+      sessionStorage.removeItem(pendingFlowKey());
+      return;
+    }
+    startFirstFlow(pendingAt);
   }
 
   function interceptRegenerate(event) {
     const button = event.target.closest('[data-ai-action="regenerate"]');
-    if (!button) return;
+    if (!button || button.disabled) return;
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
@@ -561,6 +594,7 @@
     ensureStyles();
     document.addEventListener('click', captureProfileSubmit, true);
     document.addEventListener('click', interceptRegenerate, true);
+    resumePendingFirstFlow();
     scheduleAutoAttempt();
 
     const observer = new MutationObserver(scheduleAutoAttempt);
