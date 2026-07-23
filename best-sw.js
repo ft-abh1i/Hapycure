@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-23-gemini-diet-v1';
+const PATCH_VERSION = '2026-07-23-workflow-audit-v2';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `
@@ -337,10 +337,6 @@ self.addEventListener('activate', function (event) {
     const cacheNames = await caches.keys();
     await Promise.all(cacheNames.filter(name => name.startsWith('hapycure-shell-') && name !== HTML_CACHE).map(name => caches.delete(name)));
     await self.clients.claim();
-    const windows = await self.clients.matchAll({ type: 'window' });
-    await Promise.all(windows.map(function (client) {
-      return client.navigate(client.url).catch(function () { return null; });
-    }));
   })());
 });
 
