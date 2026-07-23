@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-23-stability-v2';
+const PATCH_VERSION = '2026-07-23-stability-v3';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `
@@ -97,6 +97,19 @@ const HOME_RUNTIME_PATCH = `
 
     window.addEventListener('popstate', syncPageScroll);
     window.addEventListener('pageshow', syncPageScroll);
+  })();
+</script>
+<script id="hapycure-firebase-bootstrap">
+  (() => {
+    function bootFirebase() {
+      try {
+        if (window.firebase && firebase.initializeApp && window.NUTRITILIOUS_FIREBASE_CONFIG && !firebase.apps.length) {
+          firebase.initializeApp(window.NUTRITILIOUS_FIREBASE_CONFIG);
+        }
+      } catch (error) {}
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootFirebase, { once: true });
+    else bootFirebase();
   })();
 </script>`;
 
@@ -216,7 +229,7 @@ const FIREBASE_LOGIN_LOGIC = `function initLoginPage(navigate) {
       }
 
       phoneNumber.addEventListener('input', function () {
-        phoneNumber.value = phoneNumber.value.replace(/\D/g, '').slice(0, 10);
+        phoneNumber.value = phoneNumber.value.replace(/[^0-9]/g, '').slice(0, 10);
         setMsg('');
       });
 
@@ -225,7 +238,7 @@ const FIREBASE_LOGIN_LOGIC = `function initLoginPage(navigate) {
       });
 
       continueLogin.addEventListener('click', function () {
-        const digits = phoneNumber.value.replace(/\D/g, '');
+        const digits = phoneNumber.value.replace(/[^0-9]/g, '');
         if (digits.length !== 10) {
           setMsg('Enter a valid 10-digit mobile number.');
           phoneNumber.focus();
