@@ -1,4 +1,5 @@
-const PATCH_VERSION = '2026-07-22-ai-diet-home-v1';
+const PATCH_VERSION = '2026-07-23-stability-v2';
+const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `
 <script id="hapycure-firebase-config">
@@ -32,6 +33,22 @@ const HOME_RUNTIME_PATCH = `
     min-height: 0 !important;
     max-height: 100dvh !important;
     overflow: hidden !important;
+  }
+
+  #page-home [data-hp-legacy-home="true"],
+  #page-home [hidden] {
+    display: none !important;
+  }
+
+  #page-home .hp-ai-order-button:disabled {
+    cursor: not-allowed !important;
+    opacity: .58;
+    filter: grayscale(.15);
+  }
+
+  #page-home .hp-ai-meal-unavailable {
+    border-color: #e6a8a3 !important;
+    background: #fff8f7 !important;
   }
 
   #hapycureDietOnboarding .hp-brand-mark {
@@ -79,6 +96,7 @@ const HOME_RUNTIME_PATCH = `
     });
 
     window.addEventListener('popstate', syncPageScroll);
+    window.addEventListener('pageshow', syncPageScroll);
   })();
 </script>`;
 
@@ -90,6 +108,8 @@ const FIREBASE_LOGIN_LOGIC = `function initLoginPage(navigate) {
       const firebaseConfig = window.NUTRITILIOUS_FIREBASE_CONFIG;
       let signInCompleted = false;
       let auth = null;
+
+      if (!phoneNumber || !continueLogin || !googleLogin || !loginMsg) return;
 
       function setMsg(message, success) {
         loginMsg.style.color = success ? '#267e3e' : '#d0342c';
@@ -146,7 +166,7 @@ const FIREBASE_LOGIN_LOGIC = `function initLoginPage(navigate) {
       function friendlyGoogleError(error) {
         const code = error && error.code ? error.code : '';
         if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return 'Google sign-in was cancelled.';
-        if (code === 'auth/popup-blocked') return 'Please allow pop-ups for this website, then tap Continue with Google again.';
+        if (code === 'auth/popup-blocked') return 'Your browser blocked the sign-in window. Redirecting to Google sign-in…';
         if (code === 'auth/unauthorized-domain') return 'This website domain is not authorized in Firebase Authentication.';
         if (code === 'auth/network-request-failed') return 'Network error. Check your internet connection and try again.';
         if (code === 'auth/account-exists-with-different-credential') return 'An account already exists with this email using another sign-in method.';
@@ -177,7 +197,19 @@ const FIREBASE_LOGIN_LOGIC = `function initLoginPage(navigate) {
           completeGoogleSignIn(result && result.user);
         } catch (error) {
           signInCompleted = false;
-          setMsg(friendlyGoogleError(error), false);
+          const code = error && error.code ? error.code : '';
+          if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+            try {
+              sessionStorage.setItem('nutritiliousGoogleRedirectPending', 'true');
+              setMsg('Redirecting to Google sign-in…', true);
+              await getAuth().signInWithRedirect(new firebase.auth.GoogleAuthProvider());
+              return;
+            } catch (redirectError) {
+              setMsg(friendlyGoogleError(redirectError), false);
+            }
+          } else {
+            setMsg(friendlyGoogleError(error), false);
+          }
         } finally {
           if (document.getElementById('page-login')) setBusy(false);
         }
@@ -207,6 +239,12 @@ const FIREBASE_LOGIN_LOGIC = `function initLoginPage(navigate) {
       try {
         const currentAuth = getAuth();
         currentAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function () {});
+        currentAuth.getRedirectResult().then(function (result) {
+          if (result && result.user) completeGoogleSignIn(result.user);
+        }).catch(function (error) {
+          if (sessionStorage.getItem('nutritiliousGoogleRedirectPending') === 'true') setMsg(friendlyGoogleError(error), false);
+          sessionStorage.removeItem('nutritiliousGoogleRedirectPending');
+        });
         currentAuth.onAuthStateChanged(function (user) {
           if (user && localStorage.getItem('nutritiliousLoggedOut') !== 'true') completeGoogleSignIn(user);
         });
@@ -259,7 +297,7 @@ function patchAppShell(html) {
   const loginPattern = /function initLoginPage\(navigate\)\s*\{[\s\S]*?\n\s*\}\n\n\s*\/\* ============ Help & Support page logic/;
   const appPattern = /function App\(\)\s*\{[\s\S]*?\n\s*\}\n\n\s*const root = ReactDOM\.createRoot/;
 
-  return html
+  let patched = html
     .replace(/<button\s+class=["']login-skip-btn["'][^>]*id=["']skipLogin["'][^>]*>[\s\S]*?<\/button>/i, '')
     .replace(loginPattern, FIREBASE_LOGIN_LOGIC + '\n\n    /* ============ Help & Support page logic')
     .replace(appPattern, AUTH_AWARE_APP_LOGIC + '\n\n    const root = ReactDOM.createRoot')
@@ -267,7 +305,13 @@ function patchAppShell(html) {
       /function logout\(\)\{clearStoredLocation\(\);/,
       "function logout(){try{if(window.firebase&&firebase.apps.length)firebase.auth().signOut().catch(function(){})}catch(error){}clearStoredLocation();"
     )
-    .replace('</head>', FIREBASE_CONFIG_SCRIPT + '\n' + APP_ASSETS + '\n' + HOME_RUNTIME_PATCH + '\n</head>');
+    .replace(/<title>[\s\S]*?<\/title>/i, '<title>Hapycure</title>')
+    .replace(/content="Nutritilious[^\"]*"/i, 'content="Hapycure — personalized weekly meals from trusted local kitchens."');
+
+  if (!patched.includes('id="hapycure-firebase-config"')) {
+    patched = patched.replace('</head>', FIREBASE_CONFIG_SCRIPT + '\n' + APP_ASSETS + '\n' + HOME_RUNTIME_PATCH + '\n</head>');
+  }
+  return patched;
 }
 
 self.addEventListener('install', function () {
@@ -276,6 +320,8 @@ self.addEventListener('install', function () {
 
 self.addEventListener('activate', function (event) {
   event.waitUntil((async function () {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.filter(name => name.startsWith('hapycure-shell-') && name !== HTML_CACHE).map(name => caches.delete(name)));
     await self.clients.claim();
     const windows = await self.clients.matchAll({ type: 'window' });
     await Promise.all(windows.map(function (client) {
@@ -288,27 +334,37 @@ self.addEventListener('fetch', function (event) {
   if (event.request.mode !== 'navigate') return;
 
   event.respondWith((async function () {
-    const response = await fetch(event.request, { cache: 'no-store' });
-    const contentType = response.headers.get('content-type') || '';
-    if (!contentType.includes('text/html')) return response;
+    try {
+      const response = await fetch(event.request, { cache: 'no-store' });
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('text/html')) return response;
 
-    const html = await response.text();
-    if (!html.includes('id="root"')) {
-      return new Response(html, {
+      const html = await response.text();
+      if (!html.includes('id="root"')) {
+        return new Response(html, { status: response.status, statusText: response.statusText, headers: response.headers });
+      }
+
+      const headers = new Headers(response.headers);
+      headers.delete('content-length');
+      headers.set('content-type', 'text/html; charset=utf-8');
+      headers.set('cache-control', 'no-store, max-age=0');
+
+      const patchedResponse = new Response(patchAppShell(html), {
         status: response.status,
         statusText: response.statusText,
-        headers: response.headers
+        headers
+      });
+
+      const cache = await caches.open(HTML_CACHE);
+      cache.put(event.request, patchedResponse.clone()).catch(function () {});
+      return patchedResponse;
+    } catch (error) {
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
+      return new Response('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hapycure</title></head><body style="font-family:Arial,sans-serif;padding:32px;text-align:center"><h1>You are offline</h1><p>Reconnect to the internet and refresh Hapycure.</p></body></html>', {
+        status: 503,
+        headers: { 'content-type': 'text/html; charset=utf-8' }
       });
     }
-
-    const headers = new Headers(response.headers);
-    headers.delete('content-length');
-    headers.set('content-type', 'text/html; charset=utf-8');
-
-    return new Response(patchAppShell(html), {
-      status: response.status,
-      statusText: response.statusText,
-      headers
-    });
   })());
 });
