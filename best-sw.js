@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-24-app-shell-v4';
+const PATCH_VERSION = '2026-07-24-cart-profile-gate-v5';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `
