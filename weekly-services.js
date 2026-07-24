@@ -46,12 +46,14 @@
     desserts: { label: 'Desserts', menuType: 'dessert', accent: 'rose' }
   });
   const CATEGORY_PAGE_ID = 'hpCategoryMenuPage';
+  const CART_KEY_PREFIX = 'hapycureMenuCart_';
 
   let plan = null;
   let selectedDay = currentDayIndex();
   let searchTerm = '';
   let observer = null;
   let mountQueued = false;
+  let cartToastTimer = null;
 
   window.HAPYCURE_AVAILABLE_MENU = MENU.map(item => ({ ...item }));
 
@@ -82,7 +84,8 @@
       '<div class="hp-category-dish-visual ' + safe(config.accent) + '">' + categoryDishIcon() + '</div>' +
       '<div class="hp-category-dish-copy"><div class="hp-category-dish-top"><div><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen) + '</small></div><strong>₹' + safe(item.price) + '</strong></div>' +
       description +
-      '<div class="hp-category-dish-meta"><span>' + safe(item.serving) + '</span>' + tags + '</div></div>' +
+      '<div class="hp-category-dish-meta"><span>' + safe(item.serving) + '</span>' + tags + '</div>' +
+      '<div class="hp-category-dish-actions"><button type="button" class="hp-category-add-cart" data-menu-cart-add="' + safe(item.id) + '" aria-label="Add ' + safe(item.name) + ' to cart">Add to Cart</button><button type="button" class="hp-category-buy-now" data-menu-buy-now="' + safe(item.id) + '" aria-label="Buy ' + safe(item.name) + ' now">Buy Now</button></div></div>' +
       '</article>';
   }
 
@@ -161,6 +164,136 @@
   function profileKey() { return `nutritiliousDietProfile_${accountId()}`; }
   function planKey() { return `nutritiliousAiMenuPlan_${accountId()}`; }
   function orderDraftKey() { return `nutritiliousAiWeeklyOrderDraft_${accountId()}`; }
+  function menuCartKey() { return CART_KEY_PREFIX + accountId(); }
+
+  function loadMenuCart() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(menuCartKey()) || '[]');
+      if (!Array.isArray(stored)) return [];
+      return stored.map(entry => ({ id: String(entry && entry.id || ''), quantity: Math.max(1, Math.min(20, Number(entry && entry.quantity) || 1)) }))
+        .filter(entry => MENU.some(item => item.id === entry.id));
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function saveMenuCart(cart) {
+    const normalized = cart.filter(entry => entry && entry.id && entry.quantity > 0);
+    localStorage.setItem(menuCartKey(), JSON.stringify(normalized));
+    renderMenuCart();
+    updateMenuCartBadge();
+  }
+
+  function showMenuCartToast(message) {
+    const page = document.getElementById('page-home');
+    if (!page) return;
+    let toast = page.querySelector('#hpMenuCartToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'hpMenuCartToast';
+      toast.className = 'hp-menu-cart-toast';
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+      page.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('show');
+    if (cartToastTimer) clearTimeout(cartToastTimer);
+    cartToastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+
+  function addMenuItemToCart(itemId, notifyUser) {
+    const item = MENU.find(entry => entry.id === itemId);
+    if (!item) return null;
+    const cart = loadMenuCart();
+    const existing = cart.find(entry => entry.id === itemId);
+    if (existing) existing.quantity = Math.min(20, existing.quantity + 1);
+    else cart.push({ id: itemId, quantity: 1 });
+    saveMenuCart(cart);
+    if (notifyUser !== false) showMenuCartToast(item.name + ' added to cart');
+    return item;
+  }
+
+  function changeMenuCartQuantity(itemId, delta) {
+    const cart = loadMenuCart();
+    const entry = cart.find(item => item.id === itemId);
+    if (!entry) return;
+    entry.quantity = Math.max(0, Math.min(20, entry.quantity + delta));
+    saveMenuCart(cart.filter(item => item.quantity > 0));
+  }
+
+  function removeMenuCartItem(itemId) {
+    saveMenuCart(loadMenuCart().filter(item => item.id !== itemId));
+  }
+
+  function menuCartIcon() {
+    return '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="13"></circle><circle cx="24" cy="24" r="7"></circle><path d="M8 12v12M5 12v7c0 3 6 3 6 0v-7M8 24v12M38 12v24M34 20c0-5 1.8-8 4-8"></path></svg>';
+  }
+
+  function menuCartItemMarkup(entry) {
+    const item = MENU.find(menuItem => menuItem.id === entry.id);
+    if (!item) return '';
+    return '<article class="hp-menu-cart-item">' +
+      '<div class="hp-menu-cart-item-icon">' + menuCartIcon() + '</div>' +
+      '<div class="hp-menu-cart-item-copy"><div class="hp-menu-cart-item-head"><div><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen) + ' · ' + safe(item.serving) + '</small></div><strong>₹' + safe(item.price * entry.quantity) + '</strong></div>' +
+      '<div class="hp-menu-cart-item-actions"><button type="button" class="hp-menu-cart-remove" data-menu-cart-remove="' + safe(item.id) + '">Remove</button><div class="hp-menu-cart-quantity" aria-label="Quantity for ' + safe(item.name) + '"><button type="button" data-menu-cart-item="' + safe(item.id) + '" data-menu-cart-change="-1" aria-label="Decrease quantity">−</button><span>' + safe(entry.quantity) + '</span><button type="button" data-menu-cart-item="' + safe(item.id) + '" data-menu-cart-change="1" aria-label="Increase quantity">+</button></div></div></div>' +
+      '</article>';
+  }
+
+  function emptyMenuCartMarkup() {
+    return '<div class="empty-notify hp-menu-cart-empty"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M6 6h15l-2 8H8L6 6z"></path><path d="M6 6 5 3H2"></path><circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle></svg></div><h2>Cart is empty</h2><p>Add a dish from any food category to see it here.</p></div>';
+  }
+
+  function renderMenuCart() {
+    const cartPage = document.getElementById('cartPage');
+    const screen = cartPage && cartPage.querySelector('.notification-screen');
+    if (!screen) return;
+    let root = screen.querySelector('[data-menu-cart-root]');
+    if (!root) {
+      root = document.createElement('div');
+      root.className = 'hp-menu-cart-root';
+      root.setAttribute('data-menu-cart-root', 'true');
+      Array.from(screen.children).forEach(child => { if (!child.classList.contains('notify-head')) child.remove(); });
+      screen.appendChild(root);
+    }
+    const cart = loadMenuCart();
+    if (!cart.length) {
+      root.innerHTML = emptyMenuCartMarkup();
+      return;
+    }
+    const total = cart.reduce((sum, entry) => {
+      const item = MENU.find(menuItem => menuItem.id === entry.id);
+      return sum + (item ? item.price * entry.quantity : 0);
+    }, 0);
+    root.innerHTML = '<div class="hp-menu-cart-list">' + cart.map(menuCartItemMarkup).join('') + '</div><section class="hp-menu-cart-summary"><div><span>Item total</span><strong>₹' + safe(total) + '</strong></div><p>Delivery charges and final total will be shown at checkout.</p></section>';
+  }
+
+  function updateMenuCartBadge() {
+    const cartButton = document.getElementById('cartBtn');
+    if (!cartButton) return;
+    const count = loadMenuCart().reduce((sum, entry) => sum + entry.quantity, 0);
+    let badge = cartButton.querySelector('.hp-menu-cart-badge');
+    if (!count) {
+      if (badge) badge.remove();
+      cartButton.setAttribute('aria-label', 'Cart');
+      return;
+    }
+    if (!badge) {
+      badge = document.createElement('b');
+      badge.className = 'hp-menu-cart-badge';
+      cartButton.appendChild(badge);
+    }
+    badge.textContent = count > 99 ? '99+' : String(count);
+    cartButton.setAttribute('aria-label', 'Cart, ' + count + (count === 1 ? ' item' : ' items'));
+  }
+
+  function buyMenuItemNow(itemId) {
+    const item = addMenuItemToCart(itemId, false);
+    if (!item) return;
+    closeCategoryMenu();
+    const cartButton = document.getElementById('cartBtn');
+    if (cartButton) window.requestAnimationFrame(() => cartButton.click());
+  }
 
   function getProfile() {
     try { return JSON.parse(localStorage.getItem(profileKey()) || '{}') || {}; }
@@ -611,6 +744,30 @@
   }
 
   function handleClick(event) {
+    const addToCartButton = event.target.closest('[data-menu-cart-add]');
+    if (addToCartButton) {
+      addMenuItemToCart(addToCartButton.dataset.menuCartAdd, true);
+      return;
+    }
+
+    const buyNowButton = event.target.closest('[data-menu-buy-now]');
+    if (buyNowButton) {
+      buyMenuItemNow(buyNowButton.dataset.menuBuyNow);
+      return;
+    }
+
+    const quantityButton = event.target.closest('[data-menu-cart-change]');
+    if (quantityButton) {
+      changeMenuCartQuantity(quantityButton.dataset.menuCartItem, Number(quantityButton.dataset.menuCartChange) || 0);
+      return;
+    }
+
+    const removeButton = event.target.closest('[data-menu-cart-remove]');
+    if (removeButton) {
+      removeMenuCartItem(removeButton.dataset.menuCartRemove);
+      return;
+    }
+
     const categoryClose = event.target.closest('[data-home-category-close]');
     if (categoryClose) {
       closeCategoryMenu();
@@ -713,6 +870,8 @@
     preserveLegacyHome(main);
     ensureCategoryMenuPage(page);
     bindCategoryCards(page);
+    renderMenuCart();
+    updateMenuCartBadge();
     if (!main.querySelector(`#${DASHBOARD_ID}`)) {
       plan = loadPlan();
       main.insertAdjacentHTML('afterbegin', dashboardMarkup());
