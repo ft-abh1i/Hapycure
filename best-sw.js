@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-24-empty-home-v6';
+const PATCH_VERSION = '2026-07-24-categories-home-v7';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `
@@ -37,7 +37,15 @@ const HOME_RUNTIME_PATCH = `
   }
 
   #page-home > .app > main {
+    display: block !important;
+  }
+
+  #page-home > .app > main > * {
     display: none !important;
+  }
+
+  #page-home > .app > main > .home-categories {
+    display: block !important;
   }
 
   #page-home [data-hp-legacy-home="true"],
