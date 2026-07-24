@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-24-cart-profile-gate-v5';
+const PATCH_VERSION = '2026-07-24-empty-home-v6';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `
@@ -34,6 +34,10 @@ const HOME_RUNTIME_PATCH = `
     min-height: 0 !important;
     max-height: 100dvh !important;
     overflow: hidden !important;
+  }
+
+  #page-home > .app > main {
+    display: none !important;
   }
 
   #page-home [data-hp-legacy-home="true"],
