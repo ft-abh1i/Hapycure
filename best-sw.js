@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-23-workflow-audit-v3';
+const PATCH_VERSION = '2026-07-24-app-shell-v4';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `
@@ -335,15 +335,8 @@ self.addEventListener('install', function () {
 self.addEventListener('activate', function (event) {
   event.waitUntil((async function () {
     const cacheNames = await caches.keys();
-    const hadPreviousShell = cacheNames.some(name => name.startsWith('hapycure-shell-') && name !== HTML_CACHE);
     await Promise.all(cacheNames.filter(name => name.startsWith('hapycure-shell-') && name !== HTML_CACHE).map(name => caches.delete(name)));
     await self.clients.claim();
-    if (!hadPreviousShell) {
-      const windows = await self.clients.matchAll({ type: 'window' });
-      await Promise.all(windows.map(function (client) {
-        return client.navigate(client.url).catch(function () { return null; });
-      }));
-    }
   })());
 });
 
