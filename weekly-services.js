@@ -36,6 +36,17 @@
     { id: 'crispy-corn', name: 'Crispy Corn', kitchen: "Guruji's Kitchen", types: ['snack', 'lunch'], price: 80, serving: '1 portion', calories: 470, protein: 9, tags: ['rich', 'gluten-free'], allergens: [] }
   ];
 
+  const CATEGORY_ORDER = ['breakfast', 'lunch', 'dinner', 'snacks', 'drinks', 'desserts'];
+  const CATEGORY_CONFIG = Object.freeze({
+    breakfast: { label: 'Breakfast', menuType: 'breakfast', accent: 'sunrise' },
+    lunch: { label: 'Lunch', menuType: 'lunch', accent: 'green' },
+    dinner: { label: 'Dinner', menuType: 'dinner', accent: 'plum' },
+    snacks: { label: 'Snacks', menuType: 'snack', accent: 'orange' },
+    drinks: { label: 'Drinks', menuType: 'drink', accent: 'blue' },
+    desserts: { label: 'Desserts', menuType: 'dessert', accent: 'rose' }
+  });
+  const CATEGORY_PAGE_ID = 'hpCategoryMenuPage';
+
   let plan = null;
   let selectedDay = currentDayIndex();
   let searchTerm = '';
@@ -51,6 +62,90 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  function categoryItems(categoryKey) {
+    const config = CATEGORY_CONFIG[categoryKey];
+    if (!config) return [];
+    return MENU.filter(item => item.types.includes(config.menuType));
+  }
+
+  function categoryDishIcon() {
+    return '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="13"></circle><circle cx="24" cy="24" r="7"></circle><path d="M8 12v12M5 12v7c0 3 6 3 6 0v-7M8 24v12M38 12v24M34 20c0-5 1.8-8 4-8"></path></svg>';
+  }
+
+  function categoryCardMarkup(item, categoryKey) {
+    const config = CATEGORY_CONFIG[categoryKey];
+    const tags = (item.tags || []).slice(0, 2).map(tag => '<span>' + safe(tag.replace(/-/g, ' ')) + '</span>').join('');
+    const description = item.description ? '<p>' + safe(item.description) + '</p>' : '';
+    return '<article class="hp-category-dish-card">' +
+      '<div class="hp-category-dish-visual ' + safe(config.accent) + '">' + categoryDishIcon() + '</div>' +
+      '<div class="hp-category-dish-copy"><div class="hp-category-dish-top"><div><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen) + '</small></div><strong>₹' + safe(item.price) + '</strong></div>' +
+      description +
+      '<div class="hp-category-dish-meta"><span>' + safe(item.serving) + '</span>' + tags + '</div></div>' +
+      '</article>';
+  }
+
+  function categoryEmptyMarkup(config) {
+    return '<div class="hp-category-empty">' + categoryDishIcon() + '<h2>No ' + safe(config.label.toLowerCase()) + ' available yet</h2><p>New dishes will appear here as soon as they are added to the current kitchen menu.</p></div>';
+  }
+
+  function ensureCategoryMenuPage(page) {
+    let menuPage = page.querySelector('#' + CATEGORY_PAGE_ID);
+    if (menuPage) return menuPage;
+    menuPage = document.createElement('section');
+    menuPage.id = CATEGORY_PAGE_ID;
+    menuPage.className = 'hp-category-menu-page';
+    menuPage.setAttribute('aria-hidden', 'true');
+    menuPage.innerHTML = '<div class="hp-category-menu-screen"><header class="hp-category-menu-header"><button type="button" class="hp-category-menu-back" data-home-category-close aria-label="Back to categories"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button><div><span>GURUJI\'S KITCHEN MENU</span><h1 id="hpCategoryMenuTitle">Category</h1></div><strong id="hpCategoryMenuCount" aria-live="polite"></strong></header><div class="hp-category-menu-content" id="hpCategoryMenuContent"></div></div>';
+    page.appendChild(menuPage);
+    return menuPage;
+  }
+
+  function closeCategoryMenu() {
+    const menuPage = document.getElementById(CATEGORY_PAGE_ID);
+    if (!menuPage || !menuPage.classList.contains('show')) return false;
+    menuPage.classList.remove('show');
+    menuPage.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('hp-category-menu-open');
+    const activeCategory = document.querySelector('[data-home-category].active');
+    if (activeCategory) {
+      activeCategory.classList.remove('active');
+      activeCategory.focus({ preventScroll: true });
+    }
+    return true;
+  }
+
+  function openCategoryMenu(categoryKey) {
+    const config = CATEGORY_CONFIG[categoryKey];
+    const page = document.getElementById('page-home');
+    if (!config || !page) return;
+    const menuPage = ensureCategoryMenuPage(page);
+    const items = categoryItems(categoryKey);
+    const title = menuPage.querySelector('#hpCategoryMenuTitle');
+    const count = menuPage.querySelector('#hpCategoryMenuCount');
+    const content = menuPage.querySelector('#hpCategoryMenuContent');
+    if (title) title.textContent = config.label;
+    if (count) count.textContent = items.length + (items.length === 1 ? ' dish' : ' dishes');
+    if (content) content.innerHTML = items.length ? '<div class="hp-category-dish-list">' + items.map(item => categoryCardMarkup(item, categoryKey)).join('') + '</div>' : categoryEmptyMarkup(config);
+    page.querySelectorAll('[data-home-category]').forEach(button => button.classList.toggle('active', button.dataset.homeCategory === categoryKey));
+    menuPage.classList.add('show');
+    menuPage.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('hp-category-menu-open');
+    const backButton = menuPage.querySelector('[data-home-category-close]');
+    if (backButton) backButton.focus({ preventScroll: true });
+  }
+
+  function bindCategoryCards(page) {
+    page.querySelectorAll('.home-categories .cat').forEach((button, index) => {
+      const categoryKey = CATEGORY_ORDER[index];
+      const config = CATEGORY_CONFIG[categoryKey];
+      if (!config) return;
+      button.type = 'button';
+      button.dataset.homeCategory = categoryKey;
+      button.setAttribute('aria-controls', CATEGORY_PAGE_ID);
+      button.setAttribute('aria-label', 'View ' + config.label + ' dishes');
+    });
   }
 
   function getUser() {
@@ -516,6 +611,20 @@
   }
 
   function handleClick(event) {
+    const categoryClose = event.target.closest('[data-home-category-close]');
+    if (categoryClose) {
+      closeCategoryMenu();
+      return;
+    }
+
+    const categoryButton = event.target.closest('[data-home-category]');
+    if (categoryButton) {
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) searchInput.blur();
+      openCategoryMenu(categoryButton.dataset.homeCategory);
+      return;
+    }
+
     const dayButton = event.target.closest('[data-ai-day]');
     if (dayButton) {
       selectedDay = Math.max(0, Math.min(6, Number(dayButton.dataset.aiDay) || 0));
@@ -602,6 +711,8 @@
     if (!main) return;
 
     preserveLegacyHome(main);
+    ensureCategoryMenuPage(page);
+    bindCategoryCards(page);
     if (!main.querySelector(`#${DASHBOARD_ID}`)) {
       plan = loadPlan();
       main.insertAdjacentHTML('afterbegin', dashboardMarkup());
@@ -628,7 +739,7 @@
       observer.observe(root, { childList: true, subtree: true });
     }
     document.addEventListener('click', handleClick);
-    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeOverlay(); });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && !closeCategoryMenu()) closeOverlay(); });
     window.addEventListener('pageshow', queueMount);
   }
 
