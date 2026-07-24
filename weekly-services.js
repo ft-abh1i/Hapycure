@@ -558,6 +558,11 @@
   function preserveLegacyHome(main) {
     Array.from(main.children).forEach(child => {
       if (child.id === DASHBOARD_ID) return;
+      if (child.classList.contains('home-categories')) {
+        child.hidden = false;
+        child.removeAttribute('aria-hidden');
+        return;
+      }
       if (child.dataset.hpLegacyHome === 'true') return;
       child.dataset.hpLegacyHome = 'true';
       child.hidden = true;
