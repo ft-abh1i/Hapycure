@@ -6,6 +6,7 @@
   const USER_KEY = 'nutritiliousUser';
   const STATUS_ID = 'hpAiApiStatus';
   const FLOW_ID = 'hpAiGeneratingScreen';
+  const CART_INTENT_KEY = 'nutritiliousCartAfterDietProfile';
   const STYLE_ID = 'hpAiApiBridgeStyles';
   const MIN_SAVING_MS = 2000;
   const MIN_GENERATING_MS = 1250;
@@ -343,9 +344,10 @@
     screen.classList.add('ready');
     screen.querySelector('#hpGenEyebrow').textContent = aiReady ? 'YOUR PLAN IS READY' : 'STARTER PLAN READY';
     screen.querySelector('#hpGenTitle').textContent = aiReady ? 'Your personalized diet is ready' : 'Your safe starter diet is ready';
+    const continueToCart = sessionStorage.getItem(CART_INTENT_KEY) === 'true';
     screen.querySelector('#hpGenMessage').textContent = aiReady
-      ? 'Taking you to your Hepicure home screen…'
-      : 'Gemini could not respond right now, so we prepared a safe menu-based plan for you.';
+      ? (continueToCart ? 'Opening your cart…' : 'Taking you to your Hepicure home screen…')
+      : (continueToCart ? 'A safe menu-based plan is ready. Opening your cart…' : 'Gemini could not respond right now, so we prepared a safe menu-based plan for you.');
     screen.querySelector('#hpGenStepProfile').className = 'done';
     screen.querySelector('#hpGenStepMenu').className = 'done';
     screen.querySelector('#hpGenStepPlan').className = 'done';
@@ -401,6 +403,18 @@
     return Boolean(state && state.signature === signature && state.retryAfter && Number(state.retryAfter) > Date.now());
   }
 
+  function continueToCartIfRequested() {
+    if (sessionStorage.getItem(CART_INTENT_KEY) !== 'true') return false;
+    sessionStorage.removeItem(CART_INTENT_KEY);
+    const cartButton = document.getElementById('cartBtn');
+    if (!cartButton) return false;
+    resetFirstFlow();
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    window.requestAnimationFrame(() => cartButton.click());
+    return true;
+  }
+
   async function finishFirstFlow(aiReady) {
     const switchAt = firstFlow.submitAt + MIN_SAVING_MS;
     await wait(switchAt - Date.now());
@@ -409,6 +423,7 @@
     showReadyState(aiReady);
     sessionStorage.removeItem(pendingFlowKey());
     await wait(850);
+    if (continueToCartIfRequested()) return;
     window.location.reload();
   }
 

@@ -7,6 +7,7 @@
   const USER_KEY = 'nutritiliousUser';
   const CUSTOM_ALLERGY_DRAFT_PREFIX = 'nutritiliousCustomAllergiesDraft_';
   const ROUTINE_DRAFT_PREFIX = 'nutritiliousRoutineDraft_';
+  const CART_INTENT_KEY = 'nutritiliousCartAfterDietProfile';
   const bodyOverflowBeforeOpen = { value: '' };
 
   const steps = [
@@ -76,8 +77,19 @@
     return localStorage.getItem(completionKey(getUser())) === 'true';
   }
 
-  function shouldOpen() {
+  function needsProfileForCart() {
     return Boolean(document.getElementById('page-home')) && isEligible() && !isComplete();
+  }
+
+  function handleCartGate(event) {
+    const clickedCart = event.target instanceof Element ? event.target.closest('#cartBtn') : null;
+    if (!clickedCart || !needsProfileForCart()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    sessionStorage.setItem(CART_INTENT_KEY, 'true');
+    currentStep = 0;
+    createOverlay();
   }
 
   function ensureEnhancementStyles() {
@@ -628,17 +640,9 @@
     } catch (error) {}
   }
 
-  function launchIfNeeded() {
-    if (shouldOpen()) createOverlay();
-  }
-
   function boot() {
     ensureEnhancementStyles();
-    launchIfNeeded();
-    const root = document.getElementById('root');
-    if (root) new MutationObserver(launchIfNeeded).observe(root, { childList: true, subtree: true });
-    window.addEventListener('popstate', launchIfNeeded);
-    window.addEventListener('storage', launchIfNeeded);
+    document.addEventListener('click', handleCartGate, true);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
