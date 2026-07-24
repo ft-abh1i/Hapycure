@@ -149,12 +149,10 @@
   function modeChooserMarkup() {
     return `<div class="hp-order-types" id="hpOrderTypes" aria-label="Choose ordering type">
       <button type="button" class="hp-order-type active" data-order-mode="once">
-        <span class="hp-order-type-icon">🍽️</span>
-        <span><strong>Order food</strong><small>One-time delivery</small></span>
+        <strong>Order food</strong>
       </button>
       <button type="button" class="hp-order-type" data-order-mode="mess">
-        <span class="hp-order-type-icon">📅</span>
-        <span><strong>Mess plans</strong><small>Weekly or monthly</small></span>
+        <strong>Mess plans</strong>
       </button>
     </div>`;
   }
