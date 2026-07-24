@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-24-compact-order-switch-v14';
+const PATCH_VERSION = '2026-07-25-order-switch-position-v15';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `

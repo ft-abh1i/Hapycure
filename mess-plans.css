@@ -2,8 +2,12 @@ body.hp-mess-open {
   overflow: hidden !important;
 }
 
+#page-home .section.home-categories {
+  margin-top: 8px !important;
+}
+
 #page-home .hp-order-types {
-  margin: 2px 15px 13px;
+  margin: 0 15px 13px;
   padding: 3px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
