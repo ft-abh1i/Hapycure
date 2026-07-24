@@ -1494,3 +1494,323 @@ body.hp-category-menu-open {
     height: 50px;
   }
 }
+
+/* Direct buying page */
+body.hp-menu-buy-open {
+  overflow: hidden !important;
+}
+
+#page-home .hp-menu-buy-page {
+  position: fixed;
+  inset: 0;
+  z-index: 650;
+  display: none;
+  overflow-y: auto;
+  background: #f5f3f2;
+  overscroll-behavior: contain;
+}
+
+#page-home .hp-menu-buy-page.show {
+  display: block;
+  animation: hpCategoryPageIn .2s ease both;
+}
+
+#page-home .hp-menu-buy-screen {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: #f7f6f5;
+}
+
+#page-home .hp-menu-buy-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-height: 78px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: max(12px, env(safe-area-inset-top)) 16px 12px;
+  border-bottom: 1px solid #eee7e4;
+  background: rgba(255, 255, 255, .97);
+  backdrop-filter: blur(14px);
+}
+
+#page-home .hp-menu-buy-back {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background: #f4efed;
+  color: #2c2522;
+}
+
+#page-home .hp-menu-buy-back svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#page-home .hp-menu-buy-header span {
+  display: block;
+  margin-bottom: 4px;
+  color: #b23a31;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .13em;
+}
+
+#page-home .hp-menu-buy-header h1 {
+  color: #201b18;
+  font-size: 21px;
+  font-weight: 950;
+  letter-spacing: -.45px;
+}
+
+#page-home .hp-menu-buy-content {
+  flex: 1;
+  padding: 16px 15px calc(24px + env(safe-area-inset-bottom));
+}
+
+#page-home .hp-menu-buy-item,
+#page-home .hp-menu-buy-address,
+#page-home .hp-menu-buy-summary {
+  border: 1px solid #ece5e1;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(55, 39, 31, .06);
+}
+
+#page-home .hp-menu-buy-item {
+  display: grid;
+  grid-template-columns: 66px minmax(0, 1fr);
+  gap: 13px;
+  padding: 14px;
+}
+
+#page-home .hp-menu-buy-item-icon {
+  width: 66px;
+  height: 66px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #fff0dd, #ffd6ca);
+  color: #a94138;
+}
+
+#page-home .hp-menu-buy-item-icon svg {
+  width: 36px;
+  height: 36px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#page-home .hp-menu-buy-item-copy {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+#page-home .hp-menu-buy-item-copy h2 {
+  color: #251e1b;
+  font-size: 15px;
+  font-weight: 950;
+  line-height: 1.3;
+}
+
+#page-home .hp-menu-buy-item-copy small {
+  display: block;
+  margin-top: 5px;
+  color: #887a74;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+#page-home .hp-menu-buy-item-copy > strong {
+  flex-shrink: 0;
+  color: #b23029;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+#page-home .hp-menu-buy-quantity {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0ebe8;
+}
+
+#page-home .hp-menu-buy-quantity > span {
+  color: #625650;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+#page-home .hp-menu-buy-quantity > div {
+  height: 34px;
+  display: grid;
+  grid-template-columns: 34px 34px 34px;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid #decfc9;
+  border-radius: 11px;
+}
+
+#page-home .hp-menu-buy-quantity button,
+#page-home .hp-menu-buy-quantity b {
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+#page-home .hp-menu-buy-quantity button {
+  color: #b12f28;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+#page-home .hp-menu-buy-quantity b {
+  background: #f8f3f1;
+  color: #302825;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+#page-home .hp-menu-buy-address {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 13px;
+  padding: 15px;
+}
+
+#page-home .hp-menu-buy-address span {
+  color: #9c4039;
+  font-size: 8.5px;
+  font-weight: 950;
+  letter-spacing: .1em;
+}
+
+#page-home .hp-menu-buy-address h2 {
+  margin-top: 5px;
+  color: #302825;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.4;
+}
+
+#page-home .hp-menu-buy-address button {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fff0ed;
+  color: #b12f28;
+  font-size: 9px;
+  font-weight: 950;
+}
+
+#page-home .hp-menu-buy-address.missing {
+  border-color: #f0d1ca;
+}
+
+#page-home .hp-menu-buy-summary {
+  margin-top: 13px;
+  padding: 16px;
+}
+
+#page-home .hp-menu-buy-summary h2 {
+  margin-bottom: 12px;
+  color: #29221f;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+#page-home .hp-menu-buy-summary > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 9px;
+  color: #786b65;
+  font-size: 10.5px;
+  font-weight: 750;
+}
+
+#page-home .hp-menu-buy-summary > div strong {
+  color: #3a302c;
+  font-weight: 900;
+}
+
+#page-home .hp-menu-buy-summary .total {
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid #eee7e3;
+  color: #211b18;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+#page-home .hp-menu-buy-summary .total strong {
+  color: #b12f28;
+  font-size: 17px;
+}
+
+#page-home .hp-menu-buy-status {
+  display: none;
+  margin: 12px 4px 0;
+  padding: 11px 12px;
+  border-radius: 13px;
+  background: #eaf7ed;
+  color: #287241;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+#page-home .hp-menu-buy-status.show {
+  display: block;
+}
+
+#page-home .hp-menu-buy-footer {
+  margin-top: 16px;
+}
+
+#page-home .hp-menu-buy-continue {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 16px;
+  background: #b52f28;
+  color: #fff;
+  box-shadow: 0 9px 20px rgba(181, 47, 40, .22);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+#page-home .hp-menu-buy-continue:active {
+  transform: scale(.98);
+}
+
+@media (min-width: 600px) {
+  #page-home .hp-menu-buy-screen {
+    box-shadow: 0 0 42px rgba(40, 29, 24, .12);
+  }
+}
