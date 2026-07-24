@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-24-mess-plans-v12';
+const PATCH_VERSION = '2026-07-24-mess-directory-v13';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `
