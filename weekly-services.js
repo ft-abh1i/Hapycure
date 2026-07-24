@@ -46,7 +46,9 @@
     desserts: { label: 'Desserts', menuType: 'dessert', accent: 'rose' }
   });
   const CATEGORY_PAGE_ID = 'hpCategoryMenuPage';
+  const BUY_PAGE_ID = 'hpMenuBuyPage';
   const CART_KEY_PREFIX = 'hapycureMenuCart_';
+  const BUY_DRAFT_KEY_PREFIX = 'hapycureBuyNowDraft_';
 
   let plan = null;
   let selectedDay = currentDayIndex();
@@ -54,6 +56,7 @@
   let observer = null;
   let mountQueued = false;
   let cartToastTimer = null;
+  let buyNowState = null;
 
   window.HAPYCURE_AVAILABLE_MENU = MENU.map(item => ({ ...item }));
 
@@ -85,7 +88,7 @@
       '<div class="hp-category-dish-copy"><div class="hp-category-dish-top"><div><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen) + '</small></div><strong>₹' + safe(item.price) + '</strong></div>' +
       description +
       '<div class="hp-category-dish-meta"><span>' + safe(item.serving) + '</span>' + tags + '</div>' +
-      '<div class="hp-category-dish-actions"><button type="button" class="hp-category-add-cart" data-menu-cart-add="' + safe(item.id) + '" aria-label="Add ' + safe(item.name) + ' to cart">Add to Cart</button><button type="button" class="hp-category-buy-now" data-menu-buy-now="' + safe(item.id) + '" aria-label="Buy ' + safe(item.name) + ' now">Buy Now</button></div></div>' +
+      '<div class="hp-category-dish-actions"><button type="button" class="hp-category-add-cart" data-menu-cart-add="' + safe(item.id) + '" aria-label="Add ' + safe(item.name) + ' to cart">Add to Cart</button><button type="button" class="hp-category-buy-now" data-menu-buy-now="' + safe(item.id) + '" data-menu-buy-category="' + safe(categoryKey) + '" aria-label="Buy ' + safe(item.name) + ' now">Buy Now</button></div></div>' +
       '</article>';
   }
 
@@ -287,12 +290,95 @@
     cartButton.setAttribute('aria-label', 'Cart, ' + count + (count === 1 ? ' item' : ' items'));
   }
 
-  function buyMenuItemNow(itemId) {
-    const item = addMenuItemToCart(itemId, false);
-    if (!item) return;
+  function buyNowDraftKey() { return BUY_DRAFT_KEY_PREFIX + accountId(); }
+
+  function ensureMenuBuyPage(page) {
+    let buyPage = page.querySelector('#' + BUY_PAGE_ID);
+    if (buyPage) return buyPage;
+    buyPage = document.createElement('section');
+    buyPage.id = BUY_PAGE_ID;
+    buyPage.className = 'hp-menu-buy-page';
+    buyPage.setAttribute('aria-hidden', 'true');
+    buyPage.innerHTML = '<div class="hp-menu-buy-screen"><header class="hp-menu-buy-header"><button type="button" class="hp-menu-buy-back" data-menu-buy-close aria-label="Back to dishes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button><div><span>BUY NOW</span><h1>Review your order</h1></div></header><div class="hp-menu-buy-content" id="hpMenuBuyContent"></div></div>';
+    page.appendChild(buyPage);
+    return buyPage;
+  }
+
+  function buyPageItemMarkup(item, quantity) {
+    return '<section class="hp-menu-buy-item"><div class="hp-menu-buy-item-icon">' + menuCartIcon() + '</div><div class="hp-menu-buy-item-copy"><div><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen) + ' · ' + safe(item.serving) + '</small></div><strong>₹' + safe(item.price * quantity) + '</strong></div><div class="hp-menu-buy-quantity"><span>Quantity</span><div><button type="button" data-menu-buy-quantity="-1" aria-label="Decrease quantity">−</button><b>' + safe(quantity) + '</b><button type="button" data-menu-buy-quantity="1" aria-label="Increase quantity">+</button></div></div></section>';
+  }
+
+  function renderMenuBuyPage() {
+    const buyPage = document.getElementById(BUY_PAGE_ID);
+    const content = buyPage && buyPage.querySelector('#hpMenuBuyContent');
+    const item = buyNowState && MENU.find(entry => entry.id === buyNowState.itemId);
+    if (!content || !item) return;
+    const quantity = Math.max(1, Math.min(20, Number(buyNowState.quantity) || 1));
+    buyNowState.quantity = quantity;
+    const address = String(localStorage.getItem('nutritiliousLiveLocation') || '').trim();
+    const itemTotal = item.price * quantity;
+    const deliveryMarkup = address
+      ? '<section class="hp-menu-buy-address"><div><span>DELIVER TO</span><h2>' + safe(address) + '</h2></div><button type="button" data-menu-buy-location>Change</button></section>'
+      : '<section class="hp-menu-buy-address missing"><div><span>DELIVERY LOCATION</span><h2>Add your delivery location to continue</h2></div><button type="button" data-menu-buy-location>Add</button></section>';
+    const actionMarkup = address
+      ? '<button type="button" class="hp-menu-buy-continue" data-menu-buy-continue>Continue to payment · ₹' + safe(itemTotal) + '</button>'
+      : '<button type="button" class="hp-menu-buy-continue" data-menu-buy-location>Add delivery location</button>';
+    content.innerHTML = buyPageItemMarkup(item, quantity) + deliveryMarkup + '<section class="hp-menu-buy-summary"><h2>Price details</h2><div><span>Item total</span><strong>₹' + safe(itemTotal) + '</strong></div><div><span>Delivery charges</span><strong>Calculated next</strong></div><div class="total"><span>Total</span><strong>₹' + safe(itemTotal) + '</strong></div></section><p class="hp-menu-buy-status" id="hpMenuBuyStatus" role="status" aria-live="polite"></p><div class="hp-menu-buy-footer">' + actionMarkup + '</div>';
+  }
+
+  function openMenuBuyPage(itemId, categoryKey) {
+    const item = MENU.find(entry => entry.id === itemId);
+    const page = document.getElementById('page-home');
+    if (!item || !page) return;
+    buyNowState = { itemId: item.id, categoryKey: categoryKey || '', quantity: 1 };
     closeCategoryMenu();
-    const cartButton = document.getElementById('cartBtn');
-    if (cartButton) window.requestAnimationFrame(() => cartButton.click());
+    const buyPage = ensureMenuBuyPage(page);
+    renderMenuBuyPage();
+    buyPage.classList.add('show');
+    buyPage.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('hp-menu-buy-open');
+    const backButton = buyPage.querySelector('[data-menu-buy-close]');
+    if (backButton) backButton.focus({ preventScroll: true });
+  }
+
+  function closeMenuBuyPage(returnToCategory) {
+    const buyPage = document.getElementById(BUY_PAGE_ID);
+    if (!buyPage || !buyPage.classList.contains('show')) return false;
+    const categoryKey = buyNowState && buyNowState.categoryKey;
+    buyPage.classList.remove('show');
+    buyPage.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('hp-menu-buy-open');
+    buyNowState = null;
+    if (returnToCategory && categoryKey) window.requestAnimationFrame(() => openCategoryMenu(categoryKey));
+    return true;
+  }
+
+  function changeBuyNowQuantity(delta) {
+    if (!buyNowState) return;
+    buyNowState.quantity = Math.max(1, Math.min(20, buyNowState.quantity + delta));
+    renderMenuBuyPage();
+  }
+
+  function openBuyDeliveryLocation() {
+    const locationButton = document.getElementById('locationBtn');
+    closeMenuBuyPage(false);
+    if (locationButton) window.requestAnimationFrame(() => locationButton.click());
+  }
+
+  function continueMenuPurchase() {
+    const item = buyNowState && MENU.find(entry => entry.id === buyNowState.itemId);
+    const address = String(localStorage.getItem('nutritiliousLiveLocation') || '').trim();
+    if (!item || !address) {
+      openBuyDeliveryLocation();
+      return;
+    }
+    const quantity = buyNowState.quantity;
+    localStorage.setItem(buyNowDraftKey(), JSON.stringify({ itemId: item.id, quantity, itemTotal: item.price * quantity, address, createdAt: new Date().toISOString(), status: 'ready-for-payment' }));
+    const status = document.getElementById('hpMenuBuyStatus');
+    if (status) {
+      status.textContent = 'Order details are ready. Payment integration will continue from this page.';
+      status.classList.add('show');
+    }
   }
 
   function getProfile() {
@@ -752,7 +838,31 @@
 
     const buyNowButton = event.target.closest('[data-menu-buy-now]');
     if (buyNowButton) {
-      buyMenuItemNow(buyNowButton.dataset.menuBuyNow);
+      openMenuBuyPage(buyNowButton.dataset.menuBuyNow, buyNowButton.dataset.menuBuyCategory);
+      return;
+    }
+
+    const buyCloseButton = event.target.closest('[data-menu-buy-close]');
+    if (buyCloseButton) {
+      closeMenuBuyPage(true);
+      return;
+    }
+
+    const buyQuantityButton = event.target.closest('[data-menu-buy-quantity]');
+    if (buyQuantityButton) {
+      changeBuyNowQuantity(Number(buyQuantityButton.dataset.menuBuyQuantity) || 0);
+      return;
+    }
+
+    const buyLocationButton = event.target.closest('[data-menu-buy-location]');
+    if (buyLocationButton) {
+      openBuyDeliveryLocation();
+      return;
+    }
+
+    const buyContinueButton = event.target.closest('[data-menu-buy-continue]');
+    if (buyContinueButton) {
+      continueMenuPurchase();
       return;
     }
 
@@ -869,6 +979,7 @@
 
     preserveLegacyHome(main);
     ensureCategoryMenuPage(page);
+    ensureMenuBuyPage(page);
     bindCategoryCards(page);
     renderMenuCart();
     updateMenuCartBadge();
@@ -898,7 +1009,7 @@
       observer.observe(root, { childList: true, subtree: true });
     }
     document.addEventListener('click', handleClick);
-    document.addEventListener('keydown', event => { if (event.key === 'Escape' && !closeCategoryMenu()) closeOverlay(); });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && !closeMenuBuyPage(true) && !closeCategoryMenu()) closeOverlay(); });
     window.addEventListener('pageshow', queueMount);
   }
 

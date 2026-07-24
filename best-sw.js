@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-24-menu-cart-v9';
+const PATCH_VERSION = '2026-07-24-direct-buy-v10';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `
