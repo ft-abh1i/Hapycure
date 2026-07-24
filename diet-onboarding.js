@@ -640,13 +640,7 @@
     }
 
     showMessage(cloudSaved ? 'Your diet profile is ready.' : 'Profile saved on this device. Cloud sync will retry later.', true);
-    setTimeout(() => {
-      closeOverlay();
-      setTimeout(() => {
-        if (window.HapycureMessPlans && typeof window.HapycureMessPlans.open === 'function') window.HapycureMessPlans.open();
-        else window.dispatchEvent(new CustomEvent('hapycure:open-mess-plans'));
-      }, 260);
-    }, 650);
+    setTimeout(closeOverlay, 650);
   }
 
   function closeOverlay() {
