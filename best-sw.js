@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-24-subscription-profile-v11';
+const PATCH_VERSION = '2026-07-24-mess-plans-v12';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `
@@ -16,8 +16,10 @@ const FIREBASE_CONFIG_SCRIPT = `
 const APP_ASSETS = `
 <link rel="stylesheet" href="./diet-onboarding.css?v=${PATCH_VERSION}" />
 <link rel="stylesheet" href="./weekly-services.css?v=${PATCH_VERSION}" />
+<link rel="stylesheet" href="./mess-plans.css?v=${PATCH_VERSION}" />
 <script src="./diet-onboarding.js?v=${PATCH_VERSION}" defer></script>
 <script src="./weekly-services.js?v=${PATCH_VERSION}" defer></script>
+<script src="./mess-plans.js?v=${PATCH_VERSION}" defer></script>
 <script src="./ai-diet-api.js?v=${PATCH_VERSION}" defer></script>`;
 
 const HOME_RUNTIME_PATCH = `
