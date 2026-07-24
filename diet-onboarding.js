@@ -76,6 +76,35 @@
     return localStorage.getItem(completionKey(getUser())) === 'true';
   }
 
+  function restoreSavedProfile() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(profileKey(getUser())) || 'null');
+      if (!saved || typeof saved !== 'object') return;
+      Object.keys(profile).forEach(key => {
+        if (saved[key] === undefined || saved[key] === null) return;
+        if (key === 'customAllergies' && Array.isArray(saved[key])) {
+          profile[key] = saved[key].join(', ');
+          return;
+        }
+        if (Array.isArray(profile[key])) {
+          profile[key] = Array.isArray(saved[key]) ? saved[key].slice() : [];
+          return;
+        }
+        profile[key] = saved[key];
+      });
+    } catch (error) {}
+  }
+
+  function handleSubscriptionProfile(event) {
+    const subscriptionButton = event.target instanceof Element ? event.target.closest('#subscriptionBtn') : null;
+    if (!subscriptionButton || !document.getElementById('page-home')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    currentStep = 0;
+    createOverlay();
+  }
+
 
   function ensureEnhancementStyles() {
     if (document.getElementById('hpOnboardingEnhancementStyles')) return;
@@ -255,6 +284,7 @@
   function createOverlay() {
     if (overlay || document.getElementById(OVERLAY_ID)) return;
     ensureEnhancementStyles();
+    restoreSavedProfile();
     restoreRoutineDraft();
     bodyOverflowBeforeOpen.value = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -302,10 +332,12 @@
     overlay.querySelector('#hpStepSubtitle').textContent = step.subtitle;
     overlay.querySelector('#hpStepContent').innerHTML = stepMarkup(currentStep);
     overlay.querySelector('#hpFormMessage').textContent = '';
-    overlay.querySelector('#hpBackBtn').style.visibility = currentStep === 0 ? 'hidden' : 'visible';
+    const back = overlay.querySelector('#hpBackBtn');
+    back.style.visibility = 'visible';
+    back.textContent = currentStep === 0 ? 'Close' : 'Back';
     const next = overlay.querySelector('#hpNextBtn');
     next.disabled = false;
-    next.querySelector('span').textContent = currentStep === steps.length - 1 ? 'Create my profile' : 'Continue';
+    next.querySelector('span').textContent = currentStep === steps.length - 1 ? (isComplete() ? 'Save changes' : 'Create my profile') : 'Continue';
     next.querySelector('b').textContent = currentStep === steps.length - 1 ? '✓' : '→';
     restoreStepValues();
     requestAnimationFrame(() => overlay.querySelector('.hp-onboarding-main').scrollTo({ top: 0, behavior: 'auto' }));
@@ -544,11 +576,13 @@
 
   function goBack() {
     collectCurrentStep();
-    if (currentStep > 0) {
-      currentStep -= 1;
-      renderStep();
-      tapFeedback();
+    if (currentStep === 0) {
+      closeOverlay();
+      return;
     }
+    currentStep -= 1;
+    renderStep();
+    tapFeedback();
   }
 
   async function goNext() {
@@ -627,6 +661,10 @@
 
   function boot() {
     ensureEnhancementStyles();
+    document.addEventListener('click', handleSubscriptionProfile, true);
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && overlay) closeOverlay();
+    });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
