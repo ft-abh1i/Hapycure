@@ -49,6 +49,7 @@
   const BUY_PAGE_ID = 'hpMenuBuyPage';
   const CART_KEY_PREFIX = 'hapycureMenuCart_';
   const BUY_DRAFT_KEY_PREFIX = 'hapycureBuyNowDraft_';
+  const HOME_RECOMMENDED_ID = 'hpHomeRecommended';
 
   let plan = null;
   let selectedDay = currentDayIndex();
@@ -77,6 +78,44 @@
 
   function categoryDishIcon() {
     return '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="13"></circle><circle cx="24" cy="24" r="7"></circle><path d="M8 12v12M5 12v7c0 3 6 3 6 0v-7M8 24v12M38 12v24M34 20c0-5 1.8-8 4-8"></path></svg>';
+  }
+
+  function recommendedDishStyle(item) {
+    const type = (item.types || [])[0] || 'meal';
+    if (type === 'breakfast') return { label: 'Breakfast', accent: 'sunrise' };
+    if (type === 'lunch') return { label: 'Lunch', accent: 'green' };
+    if (type === 'dinner') return { label: 'Dinner', accent: 'plum' };
+    if (type === 'snack') return { label: 'Snacks', accent: 'orange' };
+    if (type === 'drink') return { label: 'Drinks', accent: 'blue' };
+    if (type === 'dessert') return { label: 'Desserts', accent: 'rose' };
+    return { label: 'Meal', accent: 'sunrise' };
+  }
+
+  function homeRecommendedCardMarkup(item) {
+    const style = recommendedDishStyle(item);
+    const tag = item.tags && item.tags.length
+      ? '<span>' + safe(item.tags[0].replace(/-/g, ' ')) + '</span>'
+      : '';
+    return '<article class="hp-home-dish-card">' +
+      '<div class="hp-home-dish-visual ' + safe(style.accent) + '"><span>' + safe(style.label) + '</span>' + categoryDishIcon() + '</div>' +
+      '<div class="hp-home-dish-body"><small>' + safe(item.kitchen) + '</small><h3>' + safe(item.name) + '</h3>' +
+      '<div class="hp-home-dish-price"><strong>₹' + safe(item.price) + '</strong><span>' + safe(item.serving) + '</span></div>' +
+      '<div class="hp-home-dish-meta">' + tag + '</div>' +
+      '<div class="hp-home-dish-actions"><button type="button" class="hp-home-dish-add" data-menu-cart-add="' + safe(item.id) + '" aria-label="Add ' + safe(item.name) + ' to cart">Add to Cart</button><button type="button" class="hp-home-dish-buy" data-menu-buy-now="' + safe(item.id) + '" aria-label="Buy ' + safe(item.name) + ' now">Buy Now</button></div></div>' +
+      '</article>';
+  }
+
+  function homeRecommendedMarkup() {
+    return '<section class="hp-home-recommended" id="' + HOME_RECOMMENDED_ID + '" aria-labelledby="hpHomeRecommendedTitle">' +
+      '<div class="hp-home-recommended-head"><div><span>ALL AVAILABLE DISHES</span><h2 id="hpHomeRecommendedTitle">Recommended for you</h2></div><strong>' + MENU.length + ' dishes</strong></div>' +
+      '<div class="hp-home-recommended-grid">' + MENU.map(homeRecommendedCardMarkup).join('') + '</div>' +
+      '</section>';
+  }
+
+  function ensureHomeRecommendations(page) {
+    const categories = page.querySelector('.home-categories');
+    if (!categories || categories.querySelector('#' + HOME_RECOMMENDED_ID)) return;
+    categories.insertAdjacentHTML('beforeend', homeRecommendedMarkup());
   }
 
   function categoryCardMarkup(item, categoryKey) {
@@ -981,6 +1020,7 @@
     ensureCategoryMenuPage(page);
     ensureMenuBuyPage(page);
     bindCategoryCards(page);
+    ensureHomeRecommendations(page);
     renderMenuCart();
     updateMenuCartBadge();
     if (!main.querySelector(`#${DASHBOARD_ID}`)) {

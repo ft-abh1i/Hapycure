@@ -1224,6 +1224,240 @@ body.hp-category-menu-open {
   }
 }
 
+/* Homepage recommendations */
+#page-home .hp-home-recommended {
+  margin-top: 30px;
+  padding-bottom: 18px;
+}
+
+#page-home .hp-home-recommended-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 15px;
+  margin-bottom: 13px;
+}
+
+#page-home .hp-home-recommended-head span {
+  display: block;
+  margin-bottom: 5px;
+  color: #a83a33;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .12em;
+}
+
+#page-home .hp-home-recommended-head h2 {
+  color: #201b18;
+  font-size: 20px;
+  font-weight: 950;
+  letter-spacing: -.45px;
+}
+
+#page-home .hp-home-recommended-head > strong {
+  flex: none;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: #f8eeeb;
+  color: #a13b34;
+  font-size: 8.5px;
+  font-weight: 900;
+}
+
+#page-home .hp-home-recommended-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 15px;
+}
+
+#page-home .hp-home-dish-card {
+  min-width: 0;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  border: 1px solid #ece5e1;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(50, 35, 29, .065);
+}
+
+#page-home .hp-home-dish-visual {
+  position: relative;
+  height: 108px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #a94138;
+  background:
+    radial-gradient(circle at 82% 16%, rgba(255, 255, 255, .8), transparent 24%),
+    linear-gradient(145deg, #fff0dd, #ffd6ca);
+}
+
+#page-home .hp-home-dish-visual::after {
+  content: '';
+  position: absolute;
+  right: -23px;
+  bottom: -27px;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .32);
+}
+
+#page-home .hp-home-dish-visual.green { color: #367454; background: linear-gradient(145deg, #e9f7e8, #cdebcf); }
+#page-home .hp-home-dish-visual.plum { color: #774569; background: linear-gradient(145deg, #f6eaf4, #ead2e5); }
+#page-home .hp-home-dish-visual.orange { color: #a65b24; background: linear-gradient(145deg, #fff0d9, #ffdab3); }
+#page-home .hp-home-dish-visual.blue { color: #39718b; background: linear-gradient(145deg, #e6f5fa, #cae9f2); }
+#page-home .hp-home-dish-visual.rose { color: #a23e5e; background: linear-gradient(145deg, #fceaf0, #f4ccda); }
+
+#page-home .hp-home-dish-visual > span {
+  position: absolute;
+  left: 9px;
+  top: 9px;
+  z-index: 2;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .8);
+  color: currentColor;
+  font-size: 7px;
+  font-weight: 950;
+  letter-spacing: .03em;
+}
+
+#page-home .hp-home-dish-visual svg {
+  position: relative;
+  z-index: 1;
+  width: 53px;
+  height: 53px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#page-home .hp-home-dish-body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 11px;
+}
+
+#page-home .hp-home-dish-body > small {
+  overflow: hidden;
+  color: #998c86;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 7.5px;
+  font-weight: 800;
+}
+
+#page-home .hp-home-dish-body h3 {
+  min-height: 34px;
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 5px;
+  color: #28211e;
+  font-size: 13px;
+  line-height: 1.28;
+  font-weight: 950;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+#page-home .hp-home-dish-price {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+#page-home .hp-home-dish-price strong {
+  flex: none;
+  color: #ac322b;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+#page-home .hp-home-dish-price > span {
+  overflow: hidden;
+  color: #8d817b;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 7.5px;
+  font-weight: 750;
+}
+
+#page-home .hp-home-dish-meta {
+  min-height: 22px;
+  margin-top: 7px;
+}
+
+#page-home .hp-home-dish-meta span {
+  display: inline-flex;
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: #f6f1ef;
+  color: #746862;
+  font-size: 7px;
+  font-weight: 850;
+  text-transform: capitalize;
+}
+
+#page-home .hp-home-dish-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 9px;
+}
+
+#page-home .hp-home-dish-actions button {
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 3px;
+  border-radius: 10px;
+  font-size: 8.5px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+#page-home .hp-home-dish-actions button:active {
+  transform: scale(.97);
+}
+
+#page-home .hp-home-dish-add {
+  border: 1px solid #ddc0b9;
+  background: #fff;
+  color: #a62f29;
+}
+
+#page-home .hp-home-dish-buy {
+  background: #b6312a;
+  color: #fff;
+  box-shadow: 0 5px 12px rgba(182, 49, 42, .18);
+}
+
+@media (max-width: 350px) {
+  #page-home .hp-home-recommended-grid {
+    gap: 9px;
+    padding: 0 11px;
+  }
+
+  #page-home .hp-home-dish-body {
+    padding: 9px;
+  }
+
+  #page-home .hp-home-dish-actions button {
+    font-size: 7.8px;
+  }
+}
+
 /* Category purchase actions and menu cart */
 #page-home .hp-category-dish-actions {
   display: grid;
