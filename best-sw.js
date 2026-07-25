@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-25-category-scale-v18';
+const PATCH_VERSION = '2026-07-25-working-veg-filter-v19';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `

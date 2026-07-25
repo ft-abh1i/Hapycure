@@ -4,7 +4,7 @@
   const DASHBOARD_ID = 'hpAiDietDashboard';
   const OVERLAY_ID = 'hpAiDietOverlay';
   const USER_KEY = 'nutritiliousUser';
-  const MENU_VERSION = 'guruji-kitchen-menu-v2';
+  const MENU_VERSION = 'guruji-kitchen-menu-v3';
 
   const UNAVAILABLE_ITEM = Object.freeze({
     id: 'no-safe-menu-item',
@@ -22,18 +22,18 @@
   });
 
   const MENU = [
-    { id: 'moong-dal-chilla', name: 'Moong Dal Chilla', kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 100, serving: '4 pieces', calories: 360, protein: 18, tags: ['protein', 'balanced', 'gluten-free'], allergens: [] },
-    { id: 'sambar-idli', name: 'Sambar Idli', kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 100, serving: '4 pieces', calories: 340, protein: 11, tags: ['light', 'balanced', 'gluten-free'], allergens: [] },
-    { id: 'sandwich', name: 'Vegetable Sandwich', kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 100, serving: '4 pieces', calories: 410, protein: 13, tags: ['balanced'], allergens: ['gluten', 'milk'] },
-    { id: 'appe', name: 'Appe', kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 100, serving: '2 pieces', calories: 280, protein: 8, tags: ['light', 'gluten-free'], allergens: [] },
-    { id: 'besan-chilla', name: 'Besan Chilla', kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 80, serving: '4 pieces', calories: 330, protein: 15, tags: ['protein', 'balanced', 'gluten-free'], allergens: [] },
-    { id: 'aloo-poha', name: 'Aloo Poha', kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 120, serving: '1 portion', calories: 390, protein: 8, tags: ['balanced', 'gluten-free'], allergens: ['peanuts'] },
-    { id: 'healthy-thali', name: "Chef's Healthy Thali", description: 'Sabzi + Dal + Roti + Salad + Raita', kitchen: "Guruji's Kitchen", types: ['lunch', 'dinner'], price: 120, serving: '1 thali', calories: 690, protein: 25, tags: ['protein', 'balanced'], allergens: ['gluten', 'milk'] },
-    { id: 'moong-dal-khichdi', name: 'Moong Dal Khichdi', kitchen: "Guruji's Kitchen", types: ['lunch', 'dinner'], price: 80, serving: '1 portion', calories: 430, protein: 15, tags: ['light', 'balanced', 'gluten-free'], allergens: [] },
-    { id: 'dahi-tadka-sabji', name: 'Dahi Tadka Sabji', kitchen: "Guruji's Kitchen", types: ['lunch', 'dinner'], price: 60, serving: '1 portion', calories: 320, protein: 11, tags: ['light', 'gluten-free'], allergens: ['milk'] },
-    { id: 'chilli-paneer', name: 'Chilli Paneer', kitchen: "Guruji's Kitchen", types: ['lunch', 'dinner'], price: 100, serving: '1 portion', calories: 560, protein: 24, tags: ['protein', 'rich'], allergens: ['milk', 'soy'] },
-    { id: 'chilli-mushroom', name: 'Chilli Mushroom', kitchen: "Guruji's Kitchen", types: ['lunch', 'dinner'], price: 100, serving: '1 portion', calories: 390, protein: 10, tags: ['balanced'], allergens: ['soy'] },
-    { id: 'crispy-corn', name: 'Crispy Corn', kitchen: "Guruji's Kitchen", types: ['snack', 'lunch'], price: 80, serving: '1 portion', calories: 470, protein: 9, tags: ['rich', 'gluten-free'], allergens: [] }
+    { id: 'moong-dal-chilla', name: 'Moong Dal Chilla', isVeg: true, kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 100, serving: '4 pieces', calories: 360, protein: 18, tags: ['protein', 'balanced', 'gluten-free'], allergens: [] },
+    { id: 'sambar-idli', name: 'Sambar Idli', isVeg: true, kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 100, serving: '4 pieces', calories: 340, protein: 11, tags: ['light', 'balanced', 'gluten-free'], allergens: [] },
+    { id: 'sandwich', name: 'Vegetable Sandwich', isVeg: true, kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 100, serving: '4 pieces', calories: 410, protein: 13, tags: ['balanced'], allergens: ['gluten', 'milk'] },
+    { id: 'appe', name: 'Appe', isVeg: true, kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 100, serving: '2 pieces', calories: 280, protein: 8, tags: ['light', 'gluten-free'], allergens: [] },
+    { id: 'besan-chilla', name: 'Besan Chilla', isVeg: true, kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 80, serving: '4 pieces', calories: 330, protein: 15, tags: ['protein', 'balanced', 'gluten-free'], allergens: [] },
+    { id: 'aloo-poha', name: 'Aloo Poha', isVeg: true, kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 120, serving: '1 portion', calories: 390, protein: 8, tags: ['balanced', 'gluten-free'], allergens: ['peanuts'] },
+    { id: 'healthy-thali', name: "Chef's Healthy Thali", description: 'Sabzi + Dal + Roti + Salad + Raita', isVeg: true, kitchen: "Guruji's Kitchen", types: ['lunch', 'dinner'], price: 120, serving: '1 thali', calories: 690, protein: 25, tags: ['protein', 'balanced'], allergens: ['gluten', 'milk'] },
+    { id: 'moong-dal-khichdi', name: 'Moong Dal Khichdi', isVeg: true, kitchen: "Guruji's Kitchen", types: ['lunch', 'dinner'], price: 80, serving: '1 portion', calories: 430, protein: 15, tags: ['light', 'balanced', 'gluten-free'], allergens: [] },
+    { id: 'dahi-tadka-sabji', name: 'Dahi Tadka Sabji', isVeg: true, kitchen: "Guruji's Kitchen", types: ['lunch', 'dinner'], price: 60, serving: '1 portion', calories: 320, protein: 11, tags: ['light', 'gluten-free'], allergens: ['milk'] },
+    { id: 'chilli-paneer', name: 'Chilli Paneer', isVeg: true, kitchen: "Guruji's Kitchen", types: ['lunch', 'dinner'], price: 100, serving: '1 portion', calories: 560, protein: 24, tags: ['protein', 'rich'], allergens: ['milk', 'soy'] },
+    { id: 'chilli-mushroom', name: 'Chilli Mushroom', isVeg: true, kitchen: "Guruji's Kitchen", types: ['lunch', 'dinner'], price: 100, serving: '1 portion', calories: 390, protein: 10, tags: ['balanced'], allergens: ['soy'] },
+    { id: 'crispy-corn', name: 'Crispy Corn', isVeg: true, kitchen: "Guruji's Kitchen", types: ['snack', 'lunch'], price: 80, serving: '1 portion', calories: 470, protein: 9, tags: ['rich', 'gluten-free'], allergens: [] }
   ];
 
   const CATEGORY_ORDER = ['breakfast', 'lunch', 'dinner', 'snacks', 'drinks', 'desserts'];
@@ -50,6 +50,7 @@
   const CART_KEY_PREFIX = 'hapycureMenuCart_';
   const BUY_DRAFT_KEY_PREFIX = 'hapycureBuyNowDraft_';
   const HOME_RECOMMENDED_ID = 'hpHomeRecommended';
+  const VEG_FILTER_KEY = 'hapycureVegOnly';
 
   let plan = null;
   let selectedDay = currentDayIndex();
@@ -58,6 +59,7 @@
   let mountQueued = false;
   let cartToastTimer = null;
   let buyNowState = null;
+  let vegOnly = loadVegFilter();
 
   window.HAPYCURE_AVAILABLE_MENU = MENU.map(item => ({ ...item }));
 
@@ -70,10 +72,32 @@
       .replace(/'/g, '&#039;');
   }
 
+  function loadVegFilter() {
+    try {
+      return localStorage.getItem(VEG_FILTER_KEY) === 'true';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function saveVegFilter() {
+    try {
+      localStorage.setItem(VEG_FILTER_KEY, String(vegOnly));
+    } catch (error) {}
+  }
+
+  function isVegetarian(item) {
+    return Boolean(item && item.isVeg === true);
+  }
+
+  function visibleMenuItems() {
+    return vegOnly ? MENU.filter(isVegetarian) : MENU.slice();
+  }
+
   function categoryItems(categoryKey) {
     const config = CATEGORY_CONFIG[categoryKey];
     if (!config) return [];
-    return MENU.filter(item => item.types.includes(config.menuType));
+    return visibleMenuItems().filter(item => item.types.includes(config.menuType));
   }
 
   function categoryDishIcon() {
@@ -106,10 +130,21 @@
   }
 
   function homeRecommendedMarkup() {
+    const items = visibleMenuItems();
+    const eyebrow = vegOnly ? 'VEGETARIAN DISHES' : 'ALL AVAILABLE DISHES';
+    const countLabel = items.length + (vegOnly ? ' veg ' : ' ') + (items.length === 1 ? 'dish' : 'dishes');
     return '<section class="hp-home-recommended" id="' + HOME_RECOMMENDED_ID + '" aria-labelledby="hpHomeRecommendedTitle">' +
-      '<div class="hp-home-recommended-head"><div><span>ALL AVAILABLE DISHES</span><h2 id="hpHomeRecommendedTitle">Recommended for you</h2></div><strong>' + MENU.length + ' dishes</strong></div>' +
-      '<div class="hp-home-recommended-grid">' + MENU.map(homeRecommendedCardMarkup).join('') + '</div>' +
+      '<div class="hp-home-recommended-head"><div><span>' + eyebrow + '</span><h2 id="hpHomeRecommendedTitle">Recommended for you</h2></div><strong>' + countLabel + '</strong></div>' +
+      '<div class="hp-home-recommended-grid">' + items.map(homeRecommendedCardMarkup).join('') + '</div>' +
       '</section>';
+  }
+
+  function refreshHomeRecommendations(page) {
+    const categories = page && page.querySelector('.home-categories');
+    if (!categories) return;
+    const current = categories.querySelector('#' + HOME_RECOMMENDED_ID);
+    if (current) current.outerHTML = homeRecommendedMarkup();
+    else categories.insertAdjacentHTML('beforeend', homeRecommendedMarkup());
   }
 
   function ensureHomeRecommendations(page) {
@@ -557,7 +592,7 @@
   }
 
   function availableForType(type, profile) {
-    return MENU
+    return visibleMenuItems()
       .filter(item => item.types.includes(type) && isItemAllowed(item, profile))
       .sort((a, b) => {
         const difference = goalScore(b, profile.goal) - goalScore(a, profile.goal);
@@ -606,6 +641,7 @@
       version: MENU_VERSION,
       weekStart: localDateValue(weekStart),
       profileFingerprint: profileFingerprint(profile),
+      vegOnly,
       createdAt: new Date().toISOString(),
       days
     };
@@ -616,7 +652,7 @@
     const expectedWeek = localDateValue(startOfCurrentWeek());
     try {
       const saved = JSON.parse(localStorage.getItem(planKey()) || 'null');
-      if (saved && saved.version === MENU_VERSION && saved.weekStart === expectedWeek && saved.profileFingerprint === profileFingerprint(profile) && Array.isArray(saved.days) && saved.days.length === 7) return saved;
+      if (saved && saved.version === MENU_VERSION && saved.weekStart === expectedWeek && saved.profileFingerprint === profileFingerprint(profile) && saved.vegOnly === vegOnly && Array.isArray(saved.days) && saved.days.length === 7) return saved;
     } catch (error) {}
     const freshPlan = generatePlan(profile);
     localStorage.setItem(planKey(), JSON.stringify(freshPlan));
@@ -804,7 +840,7 @@
     const day = plan && plan.days[dayIndex];
     const meal = day && day.meals.find(entry => entry.slotKey === slotKey);
     const replacement = MENU.find(item => item.id === itemId);
-    if (!meal || !replacement || !isItemAllowed(replacement, getProfile())) return;
+    if (!meal || !replacement || (vegOnly && !isVegetarian(replacement)) || !isItemAllowed(replacement, getProfile())) return;
     meal.itemId = replacement.id;
     localStorage.setItem(planKey(), JSON.stringify(plan));
     closeOverlay();
@@ -985,6 +1021,30 @@
     });
   }
 
+  function applyVegFilter(page, enabled, notifyUser) {
+    vegOnly = Boolean(enabled);
+    saveVegFilter();
+
+    const toggle = page && page.querySelector('#vegToggle');
+    if (toggle) toggle.checked = vegOnly;
+    refreshHomeRecommendations(page);
+
+    const categoryPage = document.getElementById(CATEGORY_PAGE_ID);
+    const activeCategory = page && page.querySelector('[data-home-category].active');
+    if (categoryPage && categoryPage.classList.contains('show') && activeCategory) {
+      openCategoryMenu(activeCategory.dataset.homeCategory);
+    }
+
+    localStorage.removeItem(planKey());
+    plan = generatePlan(getProfile());
+    localStorage.setItem(planKey(), JSON.stringify(plan));
+    if (document.getElementById(DASHBOARD_ID)) renderDashboard();
+
+    if (notifyUser) {
+      showMenuCartToast(vegOnly ? 'Showing vegetarian dishes only' : 'Showing all dishes');
+    }
+  }
+
   function bindHeaderControls(page, main) {
     const searchInput = page.querySelector('#searchInput');
     if (searchInput && searchInput.dataset.aiDietSearchBound !== 'true') {
@@ -995,11 +1055,15 @@
 
     const vegToggle = page.querySelector('#vegToggle');
     if (vegToggle) {
-      vegToggle.checked = true;
-      vegToggle.disabled = true;
-      vegToggle.setAttribute('aria-disabled', 'true');
+      vegToggle.checked = vegOnly;
+      vegToggle.disabled = false;
+      vegToggle.removeAttribute('aria-disabled');
+      if (vegToggle.dataset.vegFilterBound !== 'true') {
+        vegToggle.dataset.vegFilterBound = 'true';
+        vegToggle.addEventListener('change', event => applyVegFilter(page, event.currentTarget.checked, true));
+      }
       const vegLabel = page.querySelector('#onlyVegText');
-      if (vegLabel) vegLabel.textContent = 'Veg Menu';
+      if (vegLabel) vegLabel.textContent = 'Only Veg';
     }
 
     const homeButton = page.querySelector('#homeBtn');
