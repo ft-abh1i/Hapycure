@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-25-home-recommended-v16';
+const PATCH_VERSION = '2026-07-25-home-section-spacing-v17';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `
