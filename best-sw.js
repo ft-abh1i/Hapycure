@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-25-soft-bottom-nav-shadow-v20';
+const PATCH_VERSION = '2026-07-25-remove-bottom-nav-shadow-v21';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `
