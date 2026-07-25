@@ -49,8 +49,11 @@
   const BUY_PAGE_ID = 'hpMenuBuyPage';
   const CART_KEY_PREFIX = 'hapycureMenuCart_';
   const BUY_DRAFT_KEY_PREFIX = 'hapycureBuyNowDraft_';
+  const ORDER_KEY_PREFIX = 'hapycureOrders_';
+  const CHECKOUT_CONTACT_KEY_PREFIX = 'hapycureCheckoutContact_';
   const HOME_RECOMMENDED_ID = 'hpHomeRecommended';
   const VEG_FILTER_KEY = 'hapycureVegOnly';
+  const DELIVERY_FEE = 0;
 
   let plan = null;
   let selectedDay = currentDayIndex();
@@ -365,6 +368,109 @@
   }
 
   function buyNowDraftKey() { return BUY_DRAFT_KEY_PREFIX + accountId(); }
+  function menuOrdersKey() { return ORDER_KEY_PREFIX + accountId(); }
+  function checkoutContactKey() { return CHECKOUT_CONTACT_KEY_PREFIX + accountId(); }
+
+  function profileAccountId() {
+    const user = getUser();
+    return String(user.uid || user.email || user.phone || user.provider || localStorage.getItem('nutritiliousAuthType') || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
+
+  function savedProfileValue(field) {
+    try { return localStorage.getItem('nutritiliousProfile_' + profileAccountId() + '_' + field) || ''; }
+    catch (error) { return ''; }
+  }
+
+  function loadCheckoutContact() {
+    const user = getUser();
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(checkoutContactKey()) || '{}') || {}; }
+    catch (error) {}
+    return {
+      contactName: String(saved.contactName || savedProfileValue('Name') || user.name || user.displayName || '').trim(),
+      contactPhone: String(saved.contactPhone || savedProfileValue('Phone') || user.phone || user.phoneNumber || '').replace(/\D/g, '').slice(-10),
+      instructions: String(saved.instructions || '').slice(0, 120)
+    };
+  }
+
+  function saveCheckoutContact(contact) {
+    try {
+      localStorage.setItem(checkoutContactKey(), JSON.stringify({
+        contactName: String(contact.contactName || '').trim(),
+        contactPhone: String(contact.contactPhone || '').replace(/\D/g, '').slice(-10),
+        instructions: String(contact.instructions || '').trim().slice(0, 120)
+      }));
+    } catch (error) {}
+  }
+
+  function loadMenuOrders() {
+    try {
+      const orders = JSON.parse(localStorage.getItem(menuOrdersKey()) || '[]');
+      return Array.isArray(orders) ? orders.filter(order => order && order.id) : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function saveMenuOrders(orders) {
+    localStorage.setItem(menuOrdersKey(), JSON.stringify(orders.slice(0, 30)));
+    renderMenuOrders();
+  }
+
+  function createMenuOrderId() {
+    return 'HAP' + Date.now().toString(36).toUpperCase().slice(-8);
+  }
+
+  function formatMenuOrderDate(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    try {
+      return new Intl.DateTimeFormat('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        hour: 'numeric',
+        minute: '2-digit'
+      }).format(date);
+    } catch (error) {
+      return date.toLocaleString();
+    }
+  }
+
+  function menuOrderCardMarkup(order) {
+    const item = Array.isArray(order.items) ? order.items[0] : null;
+    if (!item) return '';
+    return '<article class="hp-menu-order-card">' +
+      '<div class="hp-menu-order-card-head"><div><span>' + safe(order.status || 'Order placed') + '</span><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen || '') + '</small></div><strong>₹' + safe(order.total || 0) + '</strong></div>' +
+      '<div class="hp-menu-order-card-meta"><span>Qty ' + safe(item.quantity || 1) + '</span><span>' + safe(order.paymentMethod || 'Cash on Delivery') + '</span></div>' +
+      '<div class="hp-menu-order-card-address"><b>Deliver to</b><p>' + safe(order.address || '') + '</p></div>' +
+      '<footer><span>' + safe(order.id) + '</span><time>' + safe(formatMenuOrderDate(order.createdAt)) + '</time></footer>' +
+      '</article>';
+  }
+
+  function emptyMenuOrdersMarkup() {
+    return '<div class="empty-notify hp-menu-orders-empty"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"></path><path d="M9 8h6"></path><path d="M9 12h6"></path><path d="M9 16h4"></path></svg></div><h2>No orders yet!</h2><p>Your COD orders will appear here after checkout.</p></div>';
+  }
+
+  function renderMenuOrders() {
+    const ordersPage = document.getElementById('ordersPage');
+    const screen = ordersPage && ordersPage.querySelector('.notification-screen');
+    if (!screen) return;
+    let root = screen.querySelector('[data-menu-orders-root]');
+    if (!root) {
+      root = document.createElement('div');
+      root.className = 'hp-menu-orders-root';
+      root.setAttribute('data-menu-orders-root', 'true');
+      Array.from(screen.children).forEach(child => { if (!child.classList.contains('notify-head')) child.remove(); });
+      screen.appendChild(root);
+    }
+    const orders = loadMenuOrders();
+    const signature = JSON.stringify(orders);
+    if (root.dataset.ordersSignature === signature) return;
+    root.dataset.ordersSignature = signature;
+    root.innerHTML = orders.length
+      ? '<div class="hp-menu-orders-list">' + orders.map(menuOrderCardMarkup).join('') + '</div>'
+      : emptyMenuOrdersMarkup();
+  }
 
   function ensureMenuBuyPage(page) {
     let buyPage = page.querySelector('#' + BUY_PAGE_ID);
@@ -391,22 +497,32 @@
     buyNowState.quantity = quantity;
     const address = String(localStorage.getItem('nutritiliousLiveLocation') || '').trim();
     const itemTotal = item.price * quantity;
+    const total = itemTotal + DELIVERY_FEE;
+    const contact = {
+      contactName: String(buyNowState.contactName || ''),
+      contactPhone: String(buyNowState.contactPhone || ''),
+      instructions: String(buyNowState.instructions || '')
+    };
     const deliveryMarkup = address
       ? '<section class="hp-menu-buy-address"><div><span>DELIVER TO</span><h2>' + safe(address) + '</h2></div><button type="button" data-menu-buy-location>Change</button></section>'
       : '<section class="hp-menu-buy-address missing"><div><span>DELIVERY LOCATION</span><h2>Add your delivery location to continue</h2></div><button type="button" data-menu-buy-location>Add</button></section>';
     const actionMarkup = address
-      ? '<button type="button" class="hp-menu-buy-continue" data-menu-buy-continue>Continue to payment · ₹' + safe(itemTotal) + '</button>'
+      ? '<button type="button" class="hp-menu-buy-continue" data-menu-buy-place-order>Place COD order · ₹' + safe(total) + '</button>'
       : '<button type="button" class="hp-menu-buy-continue" data-menu-buy-location>Add delivery location</button>';
-    content.innerHTML = buyPageItemMarkup(item, quantity) + deliveryMarkup + '<section class="hp-menu-buy-summary"><h2>Price details</h2><div><span>Item total</span><strong>₹' + safe(itemTotal) + '</strong></div><div><span>Delivery charges</span><strong>Calculated next</strong></div><div class="total"><span>Total</span><strong>₹' + safe(itemTotal) + '</strong></div></section><p class="hp-menu-buy-status" id="hpMenuBuyStatus" role="status" aria-live="polite"></p><div class="hp-menu-buy-footer">' + actionMarkup + '</div>';
+    const contactMarkup = '<section class="hp-menu-buy-contact"><div class="hp-menu-buy-section-title"><span>CONTACT DETAILS</span><h2>Who should receive the order?</h2></div><label>Full name<input type="text" data-menu-buy-field="contactName" maxlength="60" autocomplete="name" placeholder="Enter your name" value="' + safe(contact.contactName) + '"></label><label>Mobile number<div class="hp-menu-buy-phone"><span>+91</span><input type="tel" inputmode="numeric" data-menu-buy-field="contactPhone" maxlength="10" autocomplete="tel" placeholder="10-digit number" value="' + safe(contact.contactPhone) + '"></div></label><label>Delivery note <small>(optional)</small><textarea data-menu-buy-field="instructions" maxlength="120" rows="2" placeholder="Landmark or instructions for delivery">' + safe(contact.instructions) + '</textarea></label></section>';
+    const paymentMarkup = '<section class="hp-menu-buy-payment"><div class="hp-menu-buy-section-title"><span>PAYMENT</span><h2>Payment method</h2></div><div class="hp-menu-buy-payment-option"><div class="hp-menu-buy-cash-icon">₹</div><div><strong>Cash on Delivery</strong><span>Pay ₹' + safe(total) + ' when your order arrives</span></div><b>✓</b></div><p>COD is the only payment option available right now.</p></section>';
+    content.innerHTML = buyPageItemMarkup(item, quantity) + deliveryMarkup + contactMarkup + paymentMarkup + '<section class="hp-menu-buy-summary"><h2>Price details</h2><div><span>Item total</span><strong>₹' + safe(itemTotal) + '</strong></div><div><span>Delivery charges</span><strong class="free">FREE</strong></div><div class="total"><span>Total</span><strong>₹' + safe(total) + '</strong></div></section><p class="hp-menu-buy-status" id="hpMenuBuyStatus" role="status" aria-live="polite"></p><div class="hp-menu-buy-footer">' + actionMarkup + '<small>By placing this order, you agree to pay the total in cash at delivery.</small></div>';
   }
 
   function openMenuBuyPage(itemId, categoryKey) {
     const item = MENU.find(entry => entry.id === itemId);
     const page = document.getElementById('page-home');
     if (!item || !page) return;
-    buyNowState = { itemId: item.id, categoryKey: categoryKey || '', quantity: 1 };
+    buyNowState = { itemId: item.id, categoryKey: categoryKey || '', quantity: 1, ...loadCheckoutContact() };
     closeCategoryMenu();
     const buyPage = ensureMenuBuyPage(page);
+    const headerTitle = buyPage.querySelector('.hp-menu-buy-header h1');
+    if (headerTitle) headerTitle.textContent = 'Review your order';
     renderMenuBuyPage();
     buyPage.classList.add('show');
     buyPage.setAttribute('aria-hidden', 'false');
@@ -435,24 +551,114 @@
 
   function openBuyDeliveryLocation() {
     const locationButton = document.getElementById('locationBtn');
-    closeMenuBuyPage(false);
-    if (locationButton) window.requestAnimationFrame(() => locationButton.click());
+    if (locationButton) locationButton.click();
   }
 
-  function continueMenuPurchase() {
+  function showMenuBuyStatus(message, type) {
+    const status = document.getElementById('hpMenuBuyStatus');
+    if (!status) return;
+    status.textContent = message;
+    status.classList.add('show');
+    status.classList.toggle('error', type === 'error');
+  }
+
+  function renderMenuOrderSuccess(order) {
+    const buyPage = document.getElementById(BUY_PAGE_ID);
+    const content = buyPage && buyPage.querySelector('#hpMenuBuyContent');
+    const headerTitle = buyPage && buyPage.querySelector('.hp-menu-buy-header h1');
+    if (!content) return;
+    if (headerTitle) headerTitle.textContent = 'Order placed';
+    content.innerHTML = '<section class="hp-menu-buy-success"><div class="hp-menu-buy-success-icon">✓</div><span>ORDER PLACED</span><h2>Your COD order is placed</h2><p>Keep ₹' + safe(order.total) + ' ready. You can view the saved order and its details in Orders.</p><div class="hp-menu-buy-success-id"><span>Order ID</span><strong>' + safe(order.id) + '</strong></div><div class="hp-menu-buy-success-row"><span>Payment</span><strong>Cash on Delivery</strong></div><div class="hp-menu-buy-success-row"><span>Deliver to</span><strong>' + safe(order.address) + '</strong></div><button type="button" class="hp-menu-buy-continue" data-menu-buy-view-orders>View order</button><button type="button" class="hp-menu-buy-secondary" data-menu-buy-continue-ordering>Continue ordering</button></section>';
+  }
+
+  function placeMenuCodOrder() {
     const item = buyNowState && MENU.find(entry => entry.id === buyNowState.itemId);
     const address = String(localStorage.getItem('nutritiliousLiveLocation') || '').trim();
     if (!item || !address) {
       openBuyDeliveryLocation();
       return;
     }
-    const quantity = buyNowState.quantity;
-    localStorage.setItem(buyNowDraftKey(), JSON.stringify({ itemId: item.id, quantity, itemTotal: item.price * quantity, address, createdAt: new Date().toISOString(), status: 'ready-for-payment' }));
-    const status = document.getElementById('hpMenuBuyStatus');
-    if (status) {
-      status.textContent = 'Order details are ready. Payment integration will continue from this page.';
-      status.classList.add('show');
+    const nameInput = document.querySelector('[data-menu-buy-field="contactName"]');
+    const phoneInput = document.querySelector('[data-menu-buy-field="contactPhone"]');
+    const instructionsInput = document.querySelector('[data-menu-buy-field="instructions"]');
+    const contactName = String(nameInput ? nameInput.value : buyNowState.contactName || '').trim();
+    const contactPhone = String(phoneInput ? phoneInput.value : buyNowState.contactPhone || '').replace(/\D/g, '').slice(-10);
+    const instructions = String(instructionsInput ? instructionsInput.value : buyNowState.instructions || '').trim().slice(0, 120);
+    if (!contactName) {
+      showMenuBuyStatus('Please enter the receiver name.', 'error');
+      if (nameInput) nameInput.focus();
+      return;
     }
+    if (contactPhone.length !== 10) {
+      showMenuBuyStatus('Please enter a valid 10-digit mobile number.', 'error');
+      if (phoneInput) phoneInput.focus();
+      return;
+    }
+
+    const quantity = Math.max(1, Math.min(20, Number(buyNowState.quantity) || 1));
+    const itemTotal = item.price * quantity;
+    const createdAt = new Date().toISOString();
+    const order = {
+      id: createMenuOrderId(),
+      createdAt,
+      status: 'Order placed',
+      paymentMethod: 'Cash on Delivery',
+      paymentStatus: 'Pay on delivery',
+      address,
+      customer: { name: contactName, phone: contactPhone },
+      instructions,
+      itemTotal,
+      deliveryFee: DELIVERY_FEE,
+      total: itemTotal + DELIVERY_FEE,
+      items: [{
+        id: item.id,
+        name: item.name,
+        kitchen: item.kitchen,
+        serving: item.serving,
+        price: item.price,
+        quantity
+      }]
+    };
+    buyNowState.contactName = contactName;
+    buyNowState.contactPhone = contactPhone;
+    buyNowState.instructions = instructions;
+    saveCheckoutContact(buyNowState);
+    saveMenuOrders([order, ...loadMenuOrders()]);
+    localStorage.setItem(buyNowDraftKey(), JSON.stringify({
+      orderId: order.id,
+      itemId: item.id,
+      quantity,
+      total: order.total,
+      address,
+      paymentMethod: order.paymentMethod,
+      createdAt,
+      status: 'placed'
+    }));
+    renderMenuOrderSuccess(order);
+  }
+
+  function openPlacedMenuOrder() {
+    closeMenuBuyPage(false);
+    renderMenuOrders();
+    const ordersButton = document.getElementById('ordersBtn');
+    if (ordersButton) ordersButton.click();
+  }
+
+  function continueMenuOrdering() {
+    closeMenuBuyPage(true);
+  }
+
+  function handleMenuBuyInput(event) {
+    const field = event.target.closest('[data-menu-buy-field]');
+    if (!field || !buyNowState) return;
+    const name = field.dataset.menuBuyField;
+    if (!['contactName', 'contactPhone', 'instructions'].includes(name)) return;
+    let value = field.value;
+    if (name === 'contactPhone') {
+      value = value.replace(/\D/g, '').slice(0, 10);
+      if (field.value !== value) field.value = value;
+    }
+    buyNowState[name] = value;
   }
 
   function getProfile() {
@@ -905,6 +1111,18 @@
   }
 
   function handleClick(event) {
+    const ordersButton = event.target.closest('#ordersBtn');
+    if (ordersButton) {
+      renderMenuOrders();
+      return;
+    }
+
+    const savedAddressButton = event.target.closest('#saveAddress');
+    if (savedAddressButton && buyNowState) {
+      window.requestAnimationFrame(renderMenuBuyPage);
+      return;
+    }
+
     const addToCartButton = event.target.closest('[data-menu-cart-add]');
     if (addToCartButton) {
       addMenuItemToCart(addToCartButton.dataset.menuCartAdd, true);
@@ -935,9 +1153,21 @@
       return;
     }
 
-    const buyContinueButton = event.target.closest('[data-menu-buy-continue]');
-    if (buyContinueButton) {
-      continueMenuPurchase();
+    const buyPlaceOrderButton = event.target.closest('[data-menu-buy-place-order]');
+    if (buyPlaceOrderButton) {
+      placeMenuCodOrder();
+      return;
+    }
+
+    const buyViewOrdersButton = event.target.closest('[data-menu-buy-view-orders]');
+    if (buyViewOrdersButton) {
+      openPlacedMenuOrder();
+      return;
+    }
+
+    const buyContinueOrderingButton = event.target.closest('[data-menu-buy-continue-ordering]');
+    if (buyContinueOrderingButton) {
+      continueMenuOrdering();
       return;
     }
 
@@ -1086,6 +1316,7 @@
     bindCategoryCards(page);
     ensureHomeRecommendations(page);
     renderMenuCart();
+    renderMenuOrders();
     updateMenuCartBadge();
     if (!main.querySelector(`#${DASHBOARD_ID}`)) {
       plan = loadPlan();
@@ -1113,6 +1344,7 @@
       observer.observe(root, { childList: true, subtree: true });
     }
     document.addEventListener('click', handleClick);
+    document.addEventListener('input', handleMenuBuyInput);
     document.addEventListener('keydown', event => { if (event.key === 'Escape' && !closeMenuBuyPage(true) && !closeCategoryMenu()) closeOverlay(); });
     window.addEventListener('pageshow', queueMount);
   }
