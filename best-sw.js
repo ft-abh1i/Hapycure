@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-29-merchant-catalog-v23';
+const PATCH_VERSION = '2026-07-29-merchant-images-v24';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `

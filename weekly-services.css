@@ -364,6 +364,18 @@
   stroke-linejoin: round;
 }
 
+#page-home .hp-ai-meal-icon.has-image {
+  overflow: hidden;
+  background: #eee8e4;
+}
+
+#page-home .hp-ai-meal-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
 #page-home .hp-ai-meal-copy {
   min-width: 0;
 }
@@ -1116,6 +1128,18 @@ body.hp-category-menu-open {
 #page-home .hp-category-dish-visual.blue { color: #39718b; background: linear-gradient(145deg, #e6f5fa, #cae9f2); }
 #page-home .hp-category-dish-visual.rose { color: #a23e5e; background: linear-gradient(145deg, #fceaf0, #f4ccda); }
 
+#page-home .hp-category-dish-visual.has-image {
+  overflow: hidden;
+  background: #eee8e4;
+}
+
+#page-home .hp-category-dish-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
 #page-home .hp-category-dish-visual svg,
 #page-home .hp-category-empty svg {
   width: 38px;
@@ -1305,6 +1329,19 @@ body.hp-category-menu-open {
   height: 76px;
   border-radius: 50%;
   background: rgba(255, 255, 255, .32);
+}
+
+#page-home .hp-home-dish-visual.has-image::after {
+  display: none;
+}
+
+#page-home .hp-home-dish-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 #page-home .hp-home-dish-visual.green { color: #367454; background: linear-gradient(145deg, #e9f7e8, #cdebcf); }
@@ -1571,6 +1608,18 @@ body.hp-category-menu-open {
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+#page-home .hp-menu-cart-item-icon.has-image {
+  overflow: hidden;
+  background: #eee8e4;
+}
+
+#page-home .hp-menu-cart-item-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 #page-home .hp-menu-cart-item-copy {
@@ -1855,6 +1904,18 @@ body.hp-menu-buy-open #page-home .location-sheet {
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+#page-home .hp-menu-buy-item-icon.has-image {
+  overflow: hidden;
+  background: #eee8e4;
+}
+
+#page-home .hp-menu-buy-item-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 #page-home .hp-menu-buy-item-copy {

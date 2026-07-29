@@ -135,6 +135,11 @@
     return '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="13"></circle><circle cx="24" cy="24" r="7"></circle><path d="M8 12v12M5 12v7c0 3 6 3 6 0v-7M8 24v12M38 12v24M34 20c0-5 1.8-8 4-8"></path></svg>';
   }
 
+  function menuItemImageMarkup(item, className) {
+    if (!item?.image) return '';
+    return '<img class="' + safe(className) + '" src="' + safe(item.image) + '" alt="' + safe(item.name) + '" loading="lazy" decoding="async">';
+  }
+
   function recommendedDishStyle(item) {
     const type = (item.types || [])[0] || 'meal';
     if (type === 'breakfast') return { label: 'Breakfast', accent: 'sunrise' };
@@ -151,8 +156,9 @@
     const tag = item.tags && item.tags.length
       ? '<span>' + safe(item.tags[0].replace(/-/g, ' ')) + '</span>'
       : '';
+    const image = menuItemImageMarkup(item, 'hp-home-dish-image');
     return '<article class="hp-home-dish-card">' +
-      '<div class="hp-home-dish-visual ' + safe(style.accent) + '"><span>' + safe(style.label) + '</span>' + categoryDishIcon() + '</div>' +
+      '<div class="hp-home-dish-visual ' + safe(style.accent) + (image ? ' has-image' : '') + '"><span>' + safe(style.label) + '</span>' + (image || categoryDishIcon()) + '</div>' +
       '<div class="hp-home-dish-body"><small>' + safe(item.kitchen) + '</small><h3>' + safe(item.name) + '</h3>' +
       '<div class="hp-home-dish-price"><strong>₹' + safe(item.price) + '</strong><span>' + safe(item.serving) + '</span></div>' +
       '<div class="hp-home-dish-meta">' + tag + '</div>' +
@@ -191,8 +197,9 @@
     const config = CATEGORY_CONFIG[categoryKey];
     const tags = (item.tags || []).slice(0, 2).map(tag => '<span>' + safe(tag.replace(/-/g, ' ')) + '</span>').join('');
     const description = item.description ? '<p>' + safe(item.description) + '</p>' : '';
+    const image = menuItemImageMarkup(item, 'hp-category-dish-image');
     return '<article class="hp-category-dish-card">' +
-      '<div class="hp-category-dish-visual ' + safe(config.accent) + '">' + categoryDishIcon() + '</div>' +
+      '<div class="hp-category-dish-visual ' + safe(config.accent) + (image ? ' has-image' : '') + '">' + (image || categoryDishIcon()) + '</div>' +
       '<div class="hp-category-dish-copy"><div class="hp-category-dish-top"><div><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen) + '</small></div><strong>₹' + safe(item.price) + '</strong></div>' +
       description +
       '<div class="hp-category-dish-meta"><span>' + safe(item.serving) + '</span>' + tags + '</div>' +
@@ -344,8 +351,9 @@
   function menuCartItemMarkup(entry) {
     const item = MENU.find(menuItem => menuItem.id === entry.id);
     if (!item) return '';
+    const image = menuItemImageMarkup(item, 'hp-menu-cart-item-image');
     return '<article class="hp-menu-cart-item">' +
-      '<div class="hp-menu-cart-item-icon">' + menuCartIcon() + '</div>' +
+      '<div class="hp-menu-cart-item-icon' + (image ? ' has-image' : '') + '">' + (image || menuCartIcon()) + '</div>' +
       '<div class="hp-menu-cart-item-copy"><div class="hp-menu-cart-item-head"><div><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen) + ' · ' + safe(item.serving) + '</small></div><strong>₹' + safe(item.price * entry.quantity) + '</strong></div>' +
       '<div class="hp-menu-cart-item-actions"><button type="button" class="hp-menu-cart-remove" data-menu-cart-remove="' + safe(item.id) + '">Remove</button><div class="hp-menu-cart-quantity" aria-label="Quantity for ' + safe(item.name) + '"><button type="button" data-menu-cart-item="' + safe(item.id) + '" data-menu-cart-change="-1" aria-label="Decrease quantity">−</button><span>' + safe(entry.quantity) + '</span><button type="button" data-menu-cart-item="' + safe(item.id) + '" data-menu-cart-change="1" aria-label="Increase quantity">+</button></div></div></div>' +
       '</article>';
@@ -516,7 +524,8 @@
   }
 
   function buyPageItemMarkup(item, quantity) {
-    return '<section class="hp-menu-buy-item"><div class="hp-menu-buy-item-icon">' + menuCartIcon() + '</div><div class="hp-menu-buy-item-copy"><div><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen) + ' · ' + safe(item.serving) + '</small></div><strong>₹' + safe(item.price * quantity) + '</strong></div><div class="hp-menu-buy-quantity"><span>Quantity</span><div><button type="button" data-menu-buy-quantity="-1" aria-label="Decrease quantity">−</button><b>' + safe(quantity) + '</b><button type="button" data-menu-buy-quantity="1" aria-label="Increase quantity">+</button></div></div></section>';
+    const image = menuItemImageMarkup(item, 'hp-menu-buy-item-image');
+    return '<section class="hp-menu-buy-item"><div class="hp-menu-buy-item-icon' + (image ? ' has-image' : '') + '">' + (image || menuCartIcon()) + '</div><div class="hp-menu-buy-item-copy"><div><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen) + ' · ' + safe(item.serving) + '</small></div><strong>₹' + safe(item.price * quantity) + '</strong></div><div class="hp-menu-buy-quantity"><span>Quantity</span><div><button type="button" data-menu-buy-quantity="-1" aria-label="Decrease quantity">−</button><b>' + safe(quantity) + '</b><button type="button" data-menu-buy-quantity="1" aria-label="Increase quantity">+</button></div></div></section>';
   }
 
   function renderMenuBuyPage() {
@@ -964,6 +973,7 @@
     const item = itemById(meal.itemId);
     const matches = !searchTerm || `${item.name} ${meal.slotLabel} ${item.description || ''}`.toLowerCase().includes(searchTerm);
     const unavailableClass = item.unavailable ? ' hp-ai-meal-unavailable' : '';
+    const image = menuItemImageMarkup(item, 'hp-ai-meal-image');
     const replaceButton = item.unavailable
       ? '<button type="button" data-ai-replace="' + dayIndex + ':' + safe(meal.slotKey) + '">Find available option</button>'
       : '<button type="button" data-ai-replace="' + dayIndex + ':' + safe(meal.slotKey) + '">Replace</button>';
@@ -972,7 +982,7 @@
       : '';
 
     return `<article class="hp-ai-meal-card${matches ? '' : ' hp-ai-search-hidden'}${unavailableClass}">
-      <div class="hp-ai-meal-icon ${safe(meal.type)}">${slotIcon(meal.type)}</div>
+      <div class="hp-ai-meal-icon ${safe(meal.type)}${image ? ' has-image' : ''}">${image || slotIcon(meal.type)}</div>
       <div class="hp-ai-meal-copy">
         <div class="hp-ai-meal-top"><span>${safe(meal.slotLabel)} · ${safe(meal.time)}</span><strong>${item.unavailable ? '—' : `₹${item.price}`}</strong></div>
         <h3>${safe(item.name)}</h3>${item.description ? `<p>${safe(item.description)}</p>` : ''}
