@@ -569,6 +569,7 @@
 
     const sheet=document.getElementById('locationSheet'),locationBtn=document.getElementById('locationBtn'),closeLocation=document.getElementById('closeLocation'),allowLocationBtn=document.getElementById('allowLocationBtn'),statusBox=document.getElementById('locationStatus'),homeLocationText=document.getElementById('homeLocationText'),manualAddressBox=document.getElementById('manualAddressBox'),detectedLocationBox=document.getElementById('detectedLocationBox'),detectedLocationText=document.getElementById('detectedLocationText'),houseInput=document.getElementById('houseInput'),streetInput=document.getElementById('streetInput'),saveAddress=document.getElementById('saveAddress'),searchInput=document.getElementById('searchInput'),vegToggle=document.getElementById('vegToggle'),unavailableMsg=document.getElementById('unavailableMsg'),filterRow=document.getElementById('filterRow'),filterSheet=document.getElementById('filterSheet'),filterClose=document.getElementById('filterClose'),filterReset=document.getElementById('filterReset'),filterApply=document.getElementById('filterApply'),notificationBtn=document.getElementById('notificationBtn'),homeBtn=document.getElementById('homeBtn'),ordersBtn=document.getElementById('ordersBtn'),cartBtn=document.getElementById('cartBtn'),subscriptionBtn=document.getElementById('subscriptionBtn'),profileBtn=document.getElementById('profileBtn'),profileBack=document.getElementById('profileBack'),profileHelpBtn=document.getElementById('profileHelpBtn'),profileLogoutBtn=document.getElementById('profileLogoutBtn'),profileNameInput=document.getElementById('profileNameInput'),profilePhoneInput=document.getElementById('profilePhoneInput'),profileEmailInput=document.getElementById('profileEmailInput'),profileSaveBtn=document.getElementById('profileSaveBtn'),profileLanguageBtn=document.getElementById('profileLanguageBtn'),profileLanguageSheet=document.getElementById('profileLanguageSheet'),profileLanguageClose=document.getElementById('profileLanguageClose'),profileLanguageText=document.getElementById('profileLanguageText'),profileLanguageChoices=document.querySelectorAll('.profile-language-choice'),restaurantList=document.querySelector('.restaurant-list');
     let serviceAreas=[];let baseLocation='',isDetecting=false,locationUnavailable=false,profileDetailsLocked=false,profileSelectedLanguage='English';
+    let backendFoodCards=[],merchantRestaurants=[],merchantDishes=[],backendFoodLoaded=false,firestoreListenersStarted=false,firestoreReadFailed=false,firestoreUnsubscribers=[];
     const activeFilters={fast:false,rating:false,veg:false,price:false};
     const sheetFilters={sort:'recommended',meal:'',pref:'',sheetPrice:'',distance:''};
     const API_BASE='https://hapycure-register.onrender.com';
@@ -637,17 +638,87 @@
     function isVegFood(card){const text=`${card.foodType} ${card.category} ${card.name}`.toLowerCase();return !(text.includes('nonveg')||text.includes('non-veg')||text.includes('chicken')||text.includes('egg')||text.includes('fish'))}
     function getPhoto(item,kitchen){return item?.photo?.url||item?.photoUrl||item?.image||item?.imageUrl||kitchen?.photo?.url||kitchen?.coverPhoto?.url||kitchen?.image||''}
     function buildFoodCards(kitchens){const cards=[];kitchens.filter(isApprovedKitchen).forEach(kitchen=>{const kitchenName=valueFrom(kitchen,['kitchenName','businessName','name','title'])||'Approved Kitchen',items=valueFrom(kitchen,['foodItems','menu','foods','items']),foodType=valueFrom(kitchen,['foodType','category','preference']),area=String(valueFrom(kitchen,['city','area','location'])||'').toLowerCase(),distance=valueFrom(kitchen,['distance'])||valueFrom(kitchen,['city','area','location'])||'',time=valueFrom(kitchen,['deliveryTime','time'])||valueFrom(kitchen,['openingTime','startTime'])||'';if(Array.isArray(items)&&items.length){items.forEach((item,index)=>cards.push({name:valueFrom(item,['name','title','foodName'])||'Food item',kitchenName,category:valueFrom(item,['category','foodType'])||foodType,meal:String(valueFrom(item,['mealType','meal','type'])||'').toLowerCase(),foodType,price:valueFrom(item,['price','amount']),rating:valueFrom(kitchen,['rating','averageRating'])||'New',time:time||'—',distance:distance||'Nearby',area,img:getPhoto(item,kitchen),order:cards.length+1}))}else{cards.push({name:kitchenName,kitchenName,category:foodType||'Menu not added',meal:'',foodType,price:valueFrom(kitchen,['price','priceRange']),rating:valueFrom(kitchen,['rating','averageRating'])||'New',time:time||'—',distance:distance||'Nearby',area,img:getPhoto({},kitchen),order:cards.length+1})}});return cards}
+    function merchantDistance(restaurant){
+      const customerLat=Number(localStorage.getItem('nutritiliousLatitude')),customerLon=Number(localStorage.getItem('nutritiliousLongitude')),restaurantLat=Number(restaurant.latitude),restaurantLon=Number(restaurant.longitude);
+      if(!Number.isFinite(customerLat)||!Number.isFinite(customerLon)||!Number.isFinite(restaurantLat)||!Number.isFinite(restaurantLon))return restaurant.address||'Nearby';
+      const toRadians=value=>value*Math.PI/180,dLat=toRadians(restaurantLat-customerLat),dLon=toRadians(restaurantLon-customerLon),a=Math.sin(dLat/2)**2+Math.cos(toRadians(customerLat))*Math.cos(toRadians(restaurantLat))*Math.sin(dLon/2)**2;
+      return`${(6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))).toFixed(1)} km`;
+    }
+    function buildFirestoreFoodCards(restaurants,dishes){
+      const restaurantById=new Map(restaurants.map(restaurant=>[restaurant.__id,restaurant]));
+      return dishes.filter(dish=>{
+        const restaurant=restaurantById.get(dish.restaurantId);
+        return restaurant&&restaurant.service==='food'&&restaurant.open!==false&&restaurant.published!==false&&dish.active!==false&&dish.image;
+      }).map((dish,index)=>{
+        const restaurant=restaurantById.get(dish.restaurantId),area=String(restaurant.address||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+        return{name:dish.name||'Food item',kitchenName:restaurant.name||'Hapycure Partner',category:dish.category||restaurant.foodType||'',meal:String(dish.category||'').toLowerCase(),foodType:dish.dietType||restaurant.foodType||'',price:dish.price,rating:'New',time:'Available',distance:merchantDistance(restaurant),area,img:dish.image,order:backendFoodCards.length+index+1};
+      });
+    }
+    function renderFoodCards(){
+      clearFoodSkeleton();
+      resetUnavailableText();
+      document.querySelectorAll('.restaurant-card').forEach(card=>card.remove());
+      const cards=[...backendFoodCards,...buildFirestoreFoodCards(merchantRestaurants,merchantDishes)];
+      restaurantList.insertAdjacentHTML('beforeend',cards.map(renderBackendCard).join(''));
+      serviceAreas=[...new Set(cards.map(card=>card.area).filter(Boolean).flatMap(area=>area.split(/[ ,]+/).filter(Boolean)))];
+      applyFilters();
+    }
+    function startFirestoreFoodListeners(){
+      if(firestoreListenersStarted)return true;
+      try{
+        if(!window.firebase||!firebase.firestore)return false;
+        if(!firebase.apps.length)firebase.initializeApp(window.NUTRITILIOUS_FIREBASE_CONFIG);
+        const db=firebase.firestore(),handleError=error=>{console.error('Merchant marketplace listener failed:',error);firestoreReadFailed=true;if(!backendFoodLoaded&&!backendFoodCards.length)showLoadRetry()};
+        firestoreListenersStarted=true;
+        firestoreUnsubscribers.push(db.collection('restaurants').onSnapshot(snapshot=>{merchantRestaurants=snapshot.docs.map(document=>({__id:document.id,...document.data()}));renderFoodCards()},handleError));
+        firestoreUnsubscribers.push(db.collection('dishes').onSnapshot(snapshot=>{merchantDishes=snapshot.docs.map(document=>({__id:document.id,...document.data()}));renderFoodCards()},handleError));
+        return true;
+      }catch(error){
+        console.error('Merchant marketplace setup failed:',error);
+        firestoreReadFailed=true;
+        return false;
+      }
+    }
     function renderBackendCard(card){const veg=isVegFood(card),rating=String(card.rating||'New'),ratingText=rating==='New'?'New':`${safeText(rating)} ★`,price=card.price?`₹${safeText(card.price)} for one`:'Price not added',image=card.img?`<img class="food-img" src="${safeText(card.img)}" alt="${safeText(card.name)}" loading="lazy" decoding="async" />`:'';return `<article class="restaurant-card" data-area="${safeText(card.area)}" data-order="${card.order}" data-veg="${veg}" data-rating="${numberOnly(card.rating)||0}" data-time="${numberOnly(card.time)||999}" data-price="${numberOnly(card.price)||9999}" data-distance="${numberOnly(card.distance)||999}" data-meal="${safeText(card.meal)}" data-pref="${veg?'veg healthy homemade':'nonveg homemade'}"><div class="food-img-wrap">${image}<span class="food-type ${veg?'':'nonveg'}">${veg?'VEG':'NON-VEG'}</span><span class="time">${safeText(card.time)}</span></div><div class="card-body"><div class="name-row"><h3 class="name">${safeText(card.name)}</h3><span class="rating">${ratingText}</span></div><p class="meta">${safeText(card.kitchenName)}${card.category?' · '+safeText(card.category):''}</p><div class="card-foot"><span class="price">${price}</span><span class="distance">${safeText(card.distance)}</span></div></div></article>`}
     function showFoodSkeleton(){document.querySelectorAll('.restaurant-card').forEach(card=>card.remove());const skeletons=Array.from({length:3},()=>'<article class="restaurant-card skeleton" data-order="0"><div class="food-img-wrap"></div><div class="card-body"><div class="name-row"><h3 class="name">Loading name</h3></div><p class="meta">Loading details</p><div class="card-foot"><span class="price">Loading price</span></div></div></article>').join('');restaurantList.insertAdjacentHTML('beforeend',skeletons);unavailableMsg.classList.remove('show','retry')}
     function clearFoodSkeleton(){document.querySelectorAll('.restaurant-card.skeleton').forEach(card=>card.remove())}
     function showLoadRetry(){clearFoodSkeleton();unavailableMsg.querySelector('h3').textContent='Could not load menu';unavailableMsg.querySelector('p').textContent='Check your internet connection and tap here to try again.';unavailableMsg.classList.add('show','retry');filterRow.classList.add('hide')}
     function resetUnavailableText(){const d=lang[profileSelectedLanguage]||lang.English;unavailableMsg.querySelector('h3').textContent=d.unavailableTitle;unavailableMsg.querySelector('p').textContent=d.unavailableText;unavailableMsg.classList.remove('retry')}
-    async function loadApprovedFood(){showFoodSkeleton();try{let kitchens=[],anySuccess=false;for(const endpoint of API_ENDPOINTS){try{const response=await fetch(API_BASE+endpoint);if(!response.ok)continue;anySuccess=true;const payload=await response.json();kitchens=payloadArray(payload).filter(isApprovedKitchen);if(kitchens.length)break}catch(error){}}clearFoodSkeleton();const cards=buildFoodCards(kitchens);if(!cards.length&&!anySuccess){showLoadRetry();return}resetUnavailableText();document.querySelectorAll('.restaurant-card').forEach(card=>card.remove());restaurantList.insertAdjacentHTML('beforeend',cards.map(renderBackendCard).join(''));serviceAreas=[...new Set(cards.map(card=>card.area).filter(Boolean).flatMap(area=>area.split(/[ ,]+/).filter(Boolean)))];applyFilters()}catch(error){clearFoodSkeleton();showLoadRetry()}}
+    async function loadApprovedFood(){
+      showFoodSkeleton();
+      const firestoreStarted=startFirestoreFoodListeners();
+      try{
+        let kitchens=[],anySuccess=false;
+        for(const endpoint of API_ENDPOINTS){
+          try{
+            const response=await fetch(API_BASE+endpoint);
+            if(!response.ok)continue;
+            anySuccess=true;
+            const payload=await response.json();
+            kitchens=payloadArray(payload).filter(isApprovedKitchen);
+            if(kitchens.length)break;
+          }catch(error){}
+        }
+        backendFoodLoaded=anySuccess;
+        backendFoodCards=buildFoodCards(kitchens);
+        clearFoodSkeleton();
+        if(!backendFoodCards.length&&!anySuccess&&(!firestoreStarted||firestoreReadFailed)){
+          showLoadRetry();
+          return;
+        }
+        renderFoodCards();
+      }catch(error){
+        clearFoodSkeleton();
+        if(!firestoreStarted||firestoreReadFailed)showLoadRetry();
+        else renderFoodCards();
+      }
+    }
     const savedLanguage=getProfileValue('Language');if(savedLanguage)setProfileLanguage(savedLanguage);else applyLanguage();
     const savedLocation=localStorage.getItem('nutritiliousLiveLocation'),savedDetectedLocation=localStorage.getItem('nutritiliousDetectedLocation');if(savedLocation){baseLocation=savedDetectedLocation||savedLocation;setLocationName(savedLocation)}else setTimeout(openLocationSheet,500);
     const savedHouse=localStorage.getItem('nutritiliousHouse'),savedStreet=localStorage.getItem('nutritiliousStreet');if(savedHouse)houseInput.value=savedHouse;if(savedStreet)streetInput.value=savedStreet;
     profileNameInput.value=getProfileValue('Name');profilePhoneInput.value=getProfileValue('Phone');profileEmailInput.value=getProfileValue('Email');setProfileDetailsLocked(Boolean(profileNameInput.value||profilePhoneInput.value||profileEmailInput.value));
     locationBtn.onclick=openLocationSheet;allowLocationBtn.onclick=startLiveLocation;closeLocation.onclick=()=>{sheet.classList.remove('show');unlockScroll();clearFocusTrap()};sheet.onclick=e=>{if(e.target===sheet){sheet.classList.remove('show');unlockScroll();clearFocusTrap()}};filterClose.onclick=()=>{filterSheet.classList.remove('show');unlockScroll();clearFocusTrap()};filterSheet.onclick=e=>{if(e.target===filterSheet){filterSheet.classList.remove('show');unlockScroll();clearFocusTrap()}};filterApply.onclick=()=>{applyFilters();filterSheet.classList.remove('show');unlockScroll();clearFocusTrap()};filterReset.onclick=clearAllFilters;document.querySelectorAll('.filter-option').forEach(option=>{option.onclick=()=>{const group=option.dataset.sheetGroup,value=option.dataset.sheetValue;if(group==='sort'){sheetFilters.sort=value}else sheetFilters[group]=sheetFilters[group]===value?'':value;applyFilters()}});saveAddress.onclick=saveManualFullAddress;vegToggle.onchange=()=>{activeFilters.veg=vegToggle.checked;applyFilters()};searchInput.oninput=debounce(applyFilters,180);document.querySelectorAll('.filter[data-filter]').forEach(chip=>{chip.onclick=()=>{const key=chip.dataset.filter;if(key==='sheet'){filterSheet.classList.add('show');lockScroll();setFocusTrap(filterSheet.querySelector('.filter-panel'));updateSheetOptionState();return}activeFilters[key]=!activeFilters[key];if(key==='veg')vegToggle.checked=activeFilters.veg;applyFilters()}});unavailableMsg.onclick=()=>{if(unavailableMsg.classList.contains('retry'))loadApprovedFood()};notificationBtn.onclick=()=>document.getElementById('notificationPage').classList.add('show');homeBtn.onclick=()=>{document.querySelectorAll('.notification-page').forEach(p=>p.classList.remove('show'));setActive(homeBtn);window.scrollTo({top:0,behavior:'smooth'})};ordersBtn.onclick=()=>openPage('ordersPage',ordersBtn);cartBtn.onclick=()=>openPage('cartPage',cartBtn);subscriptionBtn.onclick=()=>openPage('subscriptionPage',subscriptionBtn);profileBtn.onclick=()=>openPage('profilePage',profileBtn);profileBack.onclick=()=>closePage('profilePage');document.querySelectorAll('[data-close]').forEach(btn=>btn.onclick=()=>closePage(btn.dataset.close));profileHelpBtn.onclick=()=>{navigate('help')};profileLogoutBtn.onclick=logout;profileSaveBtn.onclick=()=>{if(profileDetailsLocked){setProfileDetailsLocked(false);return}setProfileValue('Name',profileNameInput.value.trim());setProfileValue('Phone',profilePhoneInput.value.trim());setProfileValue('Email',profileEmailInput.value.trim());setProfileDetailsLocked(true)};profileLanguageBtn.onclick=()=>{profileLanguageSheet.classList.add('show');lockScroll();setFocusTrap(profileLanguageSheet.querySelector('.profile-language-panel'))};profileLanguageClose.onclick=()=>{profileLanguageSheet.classList.remove('show');unlockScroll();clearFocusTrap()};profileLanguageSheet.onclick=e=>{if(e.target===profileLanguageSheet){profileLanguageSheet.classList.remove('show');unlockScroll();clearFocusTrap()}};profileLanguageChoices.forEach(choice=>choice.onclick=()=>{setProfileLanguage(choice.dataset.language);profileLanguageSheet.classList.remove('show');unlockScroll();clearFocusTrap()});document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(profileLanguageSheet.classList.contains('show')){profileLanguageSheet.classList.remove('show');unlockScroll();clearFocusTrap();return}if(filterSheet.classList.contains('show')){filterSheet.classList.remove('show');unlockScroll();clearFocusTrap();return}if(sheet.classList.contains('show')){sheet.classList.remove('show');unlockScroll();clearFocusTrap();return}const openPage=document.querySelector('.notification-page.show');if(openPage)closePage(openPage.id)});loadApprovedFood();
+    return()=>firestoreUnsubscribers.splice(0).forEach(unsubscribe=>{try{unsubscribe()}catch(error){}});
   
     }
 
@@ -903,7 +974,8 @@
 
     function HomePage({ navigate }) {
       useEffect(() => {
-        initHomePage(navigate);
+        const cleanup=initHomePage(navigate);
+        return()=>{if(typeof cleanup==='function')cleanup()};
       }, []);
       return <div id="page-home" dangerouslySetInnerHTML={{ __html: HOME_HTML }} />;
     }
