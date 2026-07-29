@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-25-cod-buy-now-checkout-v22';
+const PATCH_VERSION = '2026-07-29-merchant-catalog-v23';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `
@@ -18,6 +18,7 @@ const APP_ASSETS = `
 <link rel="stylesheet" href="./weekly-services.css?v=${PATCH_VERSION}" />
 <link rel="stylesheet" href="./mess-plans.css?v=${PATCH_VERSION}" />
 <script src="./diet-onboarding.js?v=${PATCH_VERSION}" defer></script>
+<script src="./merchant-catalog.js?v=${PATCH_VERSION}" defer></script>
 <script src="./weekly-services.js?v=${PATCH_VERSION}" defer></script>
 <script src="./mess-plans.js?v=${PATCH_VERSION}" defer></script>
 <script src="./ai-diet-api.js?v=${PATCH_VERSION}" defer></script>`;

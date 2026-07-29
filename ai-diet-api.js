@@ -1,7 +1,6 @@
 (() => {
   'use strict';
 
-  const MENU_VERSION = 'guruji-kitchen-menu-v2';
   const API_ENDPOINT = '/api/generate-diet';
   const USER_KEY = 'nutritiliousUser';
   const STATUS_ID = 'hpAiApiStatus';
@@ -54,6 +53,24 @@
   function getProfile() { return getJson(profileKey(), {}) || {}; }
   function getPlan() { return getJson(planKey(), null); }
 
+  function currentMenuVersion() {
+    return String(window.HAPYCURE_MENU_VERSION || 'merchant-catalog-empty');
+  }
+
+  function currentMenu() {
+    const menu = Array.isArray(window.HAPYCURE_AVAILABLE_MENU) ? window.HAPYCURE_AVAILABLE_MENU : [];
+    return menu.slice(0, 100).map(item => ({
+      id: String(item.id || ''),
+      name: String(item.name || ''),
+      description: String(item.description || ''),
+      types: Array.isArray(item.types) ? item.types.map(String) : [],
+      price: Number(item.price) || 0,
+      isVeg: item.isVeg === true,
+      tags: Array.isArray(item.tags) ? item.tags.map(String) : [],
+      allergens: Array.isArray(item.allergens) ? item.allergens.map(String) : []
+    })).filter(item => item.id && item.name && item.types.length && item.price > 0);
+  }
+
   function normalizeAllergy(value) {
     const normalized = String(value || '').trim().toLowerCase();
     const aliases = {
@@ -88,25 +105,14 @@
     });
   }
 
-  // Includes every profile field that can affect Gemini recommendations.
+  // Gemini only receives meal timing and dietary constraints.
   function recommendationFingerprint(profile) {
-    const conditions = Array.isArray(profile.healthConditions)
-      ? [...profile.healthConditions].map(String).sort()
-      : [];
     return JSON.stringify({
-      goal: profile.goal || '',
-      sex: profile.sex || '',
-      age: Number(profile.age) || null,
-      heightCm: Number(profile.heightCm) || null,
-      weightKg: Number(profile.weightKg) || null,
-      targetWeightKg: Number(profile.targetWeightKg) || null,
       dietType: profile.dietType || '',
       allergies: allAllergies(profile).sort(),
-      activityLevel: profile.activityLevel || '',
       mealsPerDay: Number(profile.mealsPerDay) || 4,
       wakeTime: profile.wakeTime || '',
-      sleepTime: profile.sleepTime || '',
-      healthConditions: conditions
+      sleepTime: profile.sleepTime || ''
     });
   }
 
@@ -203,27 +209,19 @@
   }
 
   function currentSignature(profile, schedule) {
-    return `${recommendationFingerprint(profile)}|${schedule[0]?.date || localDateValue(startOfCurrentWeek())}|${MENU_VERSION}`;
+    return `${recommendationFingerprint(profile)}|${schedule[0]?.date || localDateValue(startOfCurrentWeek())}|${currentMenuVersion()}`;
   }
 
   function sanitizedProfile(profile) {
     return {
-      goal: profile.goal || '',
-      sex: profile.sex || '',
-      age: profile.age || null,
-      heightCm: profile.heightCm || null,
-      weightKg: profile.weightKg || null,
-      targetWeightKg: profile.targetWeightKg || null,
       dietType: profile.dietType || '',
       allergies: Array.isArray(profile.allergies) ? profile.allergies : [],
       customAllergies: Array.isArray(profile.customAllergies)
         ? profile.customAllergies
         : String(profile.customAllergies || '').split(',').map(value => value.trim()).filter(Boolean),
-      activityLevel: profile.activityLevel || '',
       mealsPerDay: profile.mealsPerDay || 4,
       wakeTime: profile.wakeTime || '',
-      sleepTime: profile.sleepTime || '',
-      healthConditions: Array.isArray(profile.healthConditions) ? profile.healthConditions : []
+      sleepTime: profile.sleepTime || ''
     };
   }
 
@@ -332,7 +330,7 @@
     window.setTimeout(() => {
       const current = document.getElementById(FLOW_ID);
       if (!current || current.classList.contains('ready')) return;
-      current.querySelector('#hpGenMessage').textContent = 'Checking your food preference, allergies, goal and meal timings…';
+      current.querySelector('#hpGenMessage').textContent = 'Checking your food preference, allergies and meal timings…';
       current.querySelector('#hpGenStepMenu').className = 'done';
       current.querySelector('#hpGenStepPlan').className = 'active';
     }, 1350);
@@ -342,10 +340,10 @@
     const screen = createFlowScreen();
     screen.classList.add('ready');
     screen.querySelector('#hpGenEyebrow').textContent = aiReady ? 'YOUR PLAN IS READY' : 'STARTER PLAN READY';
-    screen.querySelector('#hpGenTitle').textContent = aiReady ? 'Your personalized diet is ready' : 'Your safe starter diet is ready';
+    screen.querySelector('#hpGenTitle').textContent = aiReady ? 'Your live-menu plan is ready' : 'Your starter plan is ready';
     screen.querySelector('#hpGenMessage').textContent = aiReady
       ? 'Taking you to your Hepicure home screen…'
-      : 'Gemini could not respond right now, so we prepared a safe menu-based plan for you.';
+      : 'Gemini could not respond right now, so we used the currently available partner menu.';
     screen.querySelector('#hpGenStepProfile').className = 'done';
     screen.querySelector('#hpGenStepMenu').className = 'done';
     screen.querySelector('#hpGenStepPlan').className = 'done';
@@ -391,7 +389,7 @@
   function apiStateMatches(signature, plan) {
     const state = getJson(apiStateKey(), null);
     return Boolean(
-      state && state.signature === signature && state.menuVersion === MENU_VERSION &&
+      state && state.signature === signature && state.menuVersion === currentMenuVersion() &&
       plan && plan.aiSource === 'gemini' && Array.isArray(plan.days) && plan.days.length === 7
     );
   }
@@ -421,8 +419,19 @@
     if (localStorage.getItem(completionKey()) !== 'true') return false;
 
     const profile = getProfile();
-    if (!profile || !profile.goal || !profile.dietType) {
+    if (!profile || !profile.dietType) {
       if (firstRun) await finishFirstFlow(false);
+      return false;
+    }
+
+    const merchantMenu = currentMenu();
+    const requestMenuVersion = currentMenuVersion();
+    if (!merchantMenu.length) {
+      if (firstRun) await finishFirstFlow(false);
+      else {
+        setStatus('No active merchant dishes are available yet.', 'error');
+        hideStatusLater(6000);
+      }
       return false;
     }
 
@@ -433,7 +442,7 @@
     if (!force && apiStateMatches(signature, localPlan)) {
       if (firstRun) await finishFirstFlow(true);
       else {
-        setStatus('Personalized by Gemini · verified against the current kitchen menu', 'success');
+        setStatus('Gemini plan · verified against the current partner menu', 'success');
         hideStatusLater(4500);
       }
       return true;
@@ -442,7 +451,7 @@
     if (!navigator.onLine) {
       if (firstRun) await finishFirstFlow(false);
       else {
-        setStatus('You are offline. Your safe local plan is still active.', 'error');
+        setStatus('You are offline. Your local live-menu plan is still active.', 'error');
         hideStatusLater(6000);
       }
       return false;
@@ -453,7 +462,7 @@
 
     autoAttemptedFor = signature;
     inFlight = true;
-    if (!firstRun) setStatus(force ? 'Gemini is rebuilding your weekly diet…' : 'Gemini is personalizing your available menu…', 'loading');
+    if (!firstRun) setStatus(force ? 'Gemini is rebuilding your weekly menu…' : 'Gemini is matching your available menu…', 'loading');
 
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -462,17 +471,22 @@
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile: sanitizedProfile(profile), schedule }),
+        body: JSON.stringify({
+          profile: sanitizedProfile(profile),
+          schedule,
+          menu: merchantMenu,
+          menuVersion: requestMenuVersion
+        }),
         signal: controller.signal
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.ok) throw new Error(payload.error || 'AI recommendation failed.');
-      if (payload.menuVersion !== MENU_VERSION) throw new Error('The kitchen menu changed. Please try again.');
+      if (payload.menuVersion !== requestMenuVersion) throw new Error('The partner menu changed. Please try again.');
       if (!validApiDays(payload.days, schedule)) throw new Error('The AI response did not match the current menu schedule.');
 
       const aiPlan = {
         ...(localPlan || {}),
-        version: MENU_VERSION,
+        version: requestMenuVersion,
         weekStart: schedule[0].date,
         profileFingerprint: planFingerprint(profile),
         aiRecommendationFingerprint: recommendationFingerprint(profile),
@@ -489,7 +503,7 @@
         source: 'gemini',
         model: payload.model || '',
         generatedAt: payload.generatedAt || new Date().toISOString(),
-        menuVersion: MENU_VERSION
+        menuVersion: requestMenuVersion
       }));
 
       if (firstRun) await finishFirstFlow(true);
@@ -502,7 +516,7 @@
       localStorage.setItem(apiStateKey(), JSON.stringify({
         signature,
         source: 'local-fallback',
-        menuVersion: MENU_VERSION,
+        menuVersion: requestMenuVersion,
         failedAt: Date.now(),
         retryAfter: Date.now() + (15 * 60 * 1000)
       }));
@@ -510,8 +524,8 @@
       if (firstRun) await finishFirstFlow(false);
       else {
         const message = error?.name === 'AbortError'
-          ? 'Gemini timed out. Your safe local plan is still active.'
-          : (error?.message || 'Gemini is unavailable. Your safe local plan is still active.');
+          ? 'Gemini timed out. Your local live-menu plan is still active.'
+          : (error?.message || 'Gemini is unavailable. Your local live-menu plan is still active.');
         setStatus(message, 'error');
         hideStatusLater(7500);
       }
@@ -602,6 +616,7 @@
     if (document.body) observer.observe(document.body, { childList: true, subtree: true });
     window.addEventListener('online', scheduleAutoAttempt);
     window.addEventListener('pageshow', scheduleAutoAttempt);
+    window.addEventListener('hapycure:menu-updated', scheduleAutoAttempt);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });

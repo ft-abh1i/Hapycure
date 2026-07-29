@@ -305,13 +305,14 @@
   };
 </script>
 
-<link rel="stylesheet" href="./diet-onboarding.css?v=2026-07-25-cod-buy-now-checkout-v22" />
-<link rel="stylesheet" href="./weekly-services.css?v=2026-07-25-cod-buy-now-checkout-v22" />
-<link rel="stylesheet" href="./mess-plans.css?v=2026-07-25-cod-buy-now-checkout-v22" />
-<script src="./diet-onboarding.js?v=2026-07-25-cod-buy-now-checkout-v22" defer></script>
-<script src="./weekly-services.js?v=2026-07-25-cod-buy-now-checkout-v22" defer></script>
-<script src="./mess-plans.js?v=2026-07-25-cod-buy-now-checkout-v22" defer></script>
-<script src="./ai-diet-api.js?v=2026-07-25-cod-buy-now-checkout-v22" defer></script>
+<link rel="stylesheet" href="./diet-onboarding.css?v=2026-07-29-merchant-catalog-v23" />
+<link rel="stylesheet" href="./weekly-services.css?v=2026-07-29-merchant-catalog-v23" />
+<link rel="stylesheet" href="./mess-plans.css?v=2026-07-29-merchant-catalog-v23" />
+<script src="./diet-onboarding.js?v=2026-07-29-merchant-catalog-v23" defer></script>
+<script src="./merchant-catalog.js?v=2026-07-29-merchant-catalog-v23" defer></script>
+<script src="./weekly-services.js?v=2026-07-29-merchant-catalog-v23" defer></script>
+<script src="./mess-plans.js?v=2026-07-29-merchant-catalog-v23" defer></script>
+<script src="./ai-diet-api.js?v=2026-07-29-merchant-catalog-v23" defer></script>
 
 <style id="hapycure-home-runtime-styles">
   #page-home {
@@ -658,13 +659,16 @@
     function startFirestoreFoodListeners(){
       if(firestoreListenersStarted)return true;
       try{
-        if(!window.firebase||!firebase.firestore)return false;
-        if(!firebase.apps.length)firebase.initializeApp(window.NUTRITILIOUS_FIREBASE_CONFIG);
-        const db=firebase.firestore(),handleError=error=>{console.error('Merchant marketplace listener failed:',error);firestoreReadFailed=true;showLoadRetry()};
+        if(!window.HapycureMerchantCatalog)return false;
+        const handleError=error=>{console.error('Merchant marketplace listener failed:',error);firestoreReadFailed=true;showLoadRetry()};
         firestoreListenersStarted=true;
-        const renderWhenReady=()=>{if(merchantRestaurantsReady&&merchantDishesReady)renderFoodCards()};
-        firestoreUnsubscribers.push(db.collection('restaurants').where('source','==','hapycure-merchant').onSnapshot(snapshot=>{merchantRestaurants=snapshot.docs.map(document=>({__id:document.id,...document.data()}));merchantRestaurantsReady=true;renderWhenReady()},handleError));
-        firestoreUnsubscribers.push(db.collection('dishes').where('source','==','hapycure-merchant').onSnapshot(snapshot=>{merchantDishes=snapshot.docs.map(document=>({__id:document.id,...document.data()}));merchantDishesReady=true;renderWhenReady()},handleError));
+        firestoreUnsubscribers.push(window.HapycureMerchantCatalog.subscribe(snapshot=>{
+          merchantRestaurants=snapshot.restaurants;
+          merchantDishes=snapshot.dishes;
+          merchantRestaurantsReady=snapshot.ready.restaurants;
+          merchantDishesReady=snapshot.ready.dishes;
+          if(merchantRestaurantsReady&&merchantDishesReady)renderFoodCards();
+        },handleError));
         return true;
       }catch(error){
         console.error('Merchant marketplace setup failed:',error);
@@ -672,7 +676,7 @@
         return false;
       }
     }
-    function renderBackendCard(card){const veg=isVegFood(card),rating=String(card.rating||'New'),ratingText=rating==='New'?'New':`${safeText(rating)} ★`,price=card.price?`₹${safeText(card.price)} for one`:'Price not added',image=card.img?`<img class="food-img" src="${safeText(card.img)}" alt="${safeText(card.name)}" loading="lazy" decoding="async" />`:'';return `<article class="restaurant-card" data-area="${safeText(card.area)}" data-order="${card.order}" data-veg="${veg}" data-rating="${numberOnly(card.rating)||0}" data-time="${numberOnly(card.time)||999}" data-price="${numberOnly(card.price)||9999}" data-distance="${numberOnly(card.distance)||999}" data-meal="${safeText(card.meal)}" data-pref="${veg?'veg healthy homemade':'nonveg homemade'}"><div class="food-img-wrap">${image}<span class="food-type ${veg?'':'nonveg'}">${veg?'VEG':'NON-VEG'}</span><span class="time">${safeText(card.time)}</span></div><div class="card-body"><div class="name-row"><h3 class="name">${safeText(card.name)}</h3><span class="rating">${ratingText}</span></div><p class="meta">${safeText(card.kitchenName)}${card.category?' · '+safeText(card.category):''}</p><div class="card-foot"><span class="price">${price}</span><span class="distance">${safeText(card.distance)}</span></div></div></article>`}
+    function renderFoodCard(card){const veg=isVegFood(card),rating=String(card.rating||'New'),ratingText=rating==='New'?'New':`${safeText(rating)} ★`,price=card.price?`₹${safeText(card.price)} for one`:'Price not added',image=card.img?`<img class="food-img" src="${safeText(card.img)}" alt="${safeText(card.name)}" loading="lazy" decoding="async" />`:'';return `<article class="restaurant-card" data-area="${safeText(card.area)}" data-order="${card.order}" data-veg="${veg}" data-rating="${numberOnly(card.rating)||0}" data-time="${numberOnly(card.time)||999}" data-price="${numberOnly(card.price)||9999}" data-distance="${numberOnly(card.distance)||999}" data-meal="${safeText(card.meal)}" data-pref="${veg?'veg healthy homemade':'nonveg homemade'}"><div class="food-img-wrap">${image}<span class="food-type ${veg?'':'nonveg'}">${veg?'VEG':'NON-VEG'}</span><span class="time">${safeText(card.time)}</span></div><div class="card-body"><div class="name-row"><h3 class="name">${safeText(card.name)}</h3><span class="rating">${ratingText}</span></div><p class="meta">${safeText(card.kitchenName)}${card.category?' · '+safeText(card.category):''}</p><div class="card-foot"><span class="price">${price}</span><span class="distance">${safeText(card.distance)}</span></div></div></article>`}
     function showFoodSkeleton(){document.querySelectorAll('.restaurant-card').forEach(card=>card.remove());const skeletons=Array.from({length:3},()=>'<article class="restaurant-card skeleton" data-order="0"><div class="food-img-wrap"></div><div class="card-body"><div class="name-row"><h3 class="name">Loading name</h3></div><p class="meta">Loading details</p><div class="card-foot"><span class="price">Loading price</span></div></div></article>').join('');restaurantList.insertAdjacentHTML('beforeend',skeletons);unavailableMsg.classList.remove('show','retry')}
     function clearFoodSkeleton(){document.querySelectorAll('.restaurant-card.skeleton').forEach(card=>card.remove())}
     function showLoadRetry(){clearFoodSkeleton();unavailableMsg.querySelector('h3').textContent='Could not load menu';unavailableMsg.querySelector('p').textContent='Check your internet connection and tap here to try again.';unavailableMsg.classList.add('show','retry');filterRow.classList.add('hide')}

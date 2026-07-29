@@ -4,16 +4,16 @@
   const DASHBOARD_ID = 'hpAiDietDashboard';
   const OVERLAY_ID = 'hpAiDietOverlay';
   const USER_KEY = 'nutritiliousUser';
-  const MENU_VERSION = 'guruji-kitchen-menu-v3';
+  let menuVersion = 'merchant-catalog-empty';
 
   const UNAVAILABLE_ITEM = Object.freeze({
     id: 'no-safe-menu-item',
-    name: 'No safe meal available',
-    description: 'No current kitchen item matches this meal slot and your saved avoid-list.',
-    kitchen: "Guruji's Kitchen",
+    name: 'No matching meal available',
+    description: 'No active merchant dish currently matches this meal slot.',
+    kitchen: 'Hapycure Partner',
     types: [],
     price: 0,
-    serving: 'Kitchen confirmation needed',
+    serving: 'Unavailable',
     calories: 0,
     protein: 0,
     tags: [],
@@ -21,20 +21,7 @@
     unavailable: true
   });
 
-  const MENU = [
-    { id: 'moong-dal-chilla', name: 'Moong Dal Chilla', isVeg: true, kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 100, serving: '4 pieces', calories: 360, protein: 18, tags: ['protein', 'balanced', 'gluten-free'], allergens: [] },
-    { id: 'sambar-idli', name: 'Sambar Idli', isVeg: true, kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 100, serving: '4 pieces', calories: 340, protein: 11, tags: ['light', 'balanced', 'gluten-free'], allergens: [] },
-    { id: 'sandwich', name: 'Vegetable Sandwich', isVeg: true, kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 100, serving: '4 pieces', calories: 410, protein: 13, tags: ['balanced'], allergens: ['gluten', 'milk'] },
-    { id: 'appe', name: 'Appe', isVeg: true, kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 100, serving: '2 pieces', calories: 280, protein: 8, tags: ['light', 'gluten-free'], allergens: [] },
-    { id: 'besan-chilla', name: 'Besan Chilla', isVeg: true, kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 80, serving: '4 pieces', calories: 330, protein: 15, tags: ['protein', 'balanced', 'gluten-free'], allergens: [] },
-    { id: 'aloo-poha', name: 'Aloo Poha', isVeg: true, kitchen: "Guruji's Kitchen", types: ['breakfast', 'snack'], price: 120, serving: '1 portion', calories: 390, protein: 8, tags: ['balanced', 'gluten-free'], allergens: ['peanuts'] },
-    { id: 'healthy-thali', name: "Chef's Healthy Thali", description: 'Sabzi + Dal + Roti + Salad + Raita', isVeg: true, kitchen: "Guruji's Kitchen", types: ['lunch', 'dinner'], price: 120, serving: '1 thali', calories: 690, protein: 25, tags: ['protein', 'balanced'], allergens: ['gluten', 'milk'] },
-    { id: 'moong-dal-khichdi', name: 'Moong Dal Khichdi', isVeg: true, kitchen: "Guruji's Kitchen", types: ['lunch', 'dinner'], price: 80, serving: '1 portion', calories: 430, protein: 15, tags: ['light', 'balanced', 'gluten-free'], allergens: [] },
-    { id: 'dahi-tadka-sabji', name: 'Dahi Tadka Sabji', isVeg: true, kitchen: "Guruji's Kitchen", types: ['lunch', 'dinner'], price: 60, serving: '1 portion', calories: 320, protein: 11, tags: ['light', 'gluten-free'], allergens: ['milk'] },
-    { id: 'chilli-paneer', name: 'Chilli Paneer', isVeg: true, kitchen: "Guruji's Kitchen", types: ['lunch', 'dinner'], price: 100, serving: '1 portion', calories: 560, protein: 24, tags: ['protein', 'rich'], allergens: ['milk', 'soy'] },
-    { id: 'chilli-mushroom', name: 'Chilli Mushroom', isVeg: true, kitchen: "Guruji's Kitchen", types: ['lunch', 'dinner'], price: 100, serving: '1 portion', calories: 390, protein: 10, tags: ['balanced'], allergens: ['soy'] },
-    { id: 'crispy-corn', name: 'Crispy Corn', isVeg: true, kitchen: "Guruji's Kitchen", types: ['snack', 'lunch'], price: 80, serving: '1 portion', calories: 470, protein: 9, tags: ['rich', 'gluten-free'], allergens: [] }
-  ];
+  let MENU = [];
 
   const CATEGORY_ORDER = ['breakfast', 'lunch', 'dinner', 'snacks', 'drinks', 'desserts'];
   const CATEGORY_CONFIG = Object.freeze({
@@ -63,8 +50,10 @@
   let cartToastTimer = null;
   let buyNowState = null;
   let vegOnly = loadVegFilter();
+  let catalogUnsubscribe = null;
 
-  window.HAPYCURE_AVAILABLE_MENU = MENU.map(item => ({ ...item }));
+  window.HAPYCURE_AVAILABLE_MENU = [];
+  window.HAPYCURE_MENU_VERSION = menuVersion;
 
   function safe(value) {
     return String(value == null ? '' : value)
@@ -73,6 +62,45 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  function applyMerchantCatalog(snapshot) {
+    if (!snapshot?.ready?.restaurants || !snapshot?.ready?.dishes) return;
+    const nextMenu = window.HapycureMerchantCatalog.menuItems(snapshot);
+    const nextVersion = `merchant-menu-${snapshot.version}`;
+    if (nextVersion === menuVersion && JSON.stringify(nextMenu) === JSON.stringify(MENU)) return;
+
+    MENU = nextMenu;
+    menuVersion = nextVersion;
+    window.HAPYCURE_AVAILABLE_MENU = MENU.map(item => ({ ...item }));
+    window.HAPYCURE_MENU_VERSION = menuVersion;
+
+    localStorage.removeItem(planKey());
+    plan = loadPlan();
+    const page = document.getElementById('page-home');
+    if (page) {
+      refreshHomeRecommendations(page);
+      renderMenuCart();
+      updateMenuCartBadge();
+      const categoryPage = document.getElementById(CATEGORY_PAGE_ID);
+      const activeCategory = page.querySelector('[data-home-category].active');
+      if (categoryPage?.classList.contains('show') && activeCategory) {
+        openCategoryMenu(activeCategory.dataset.homeCategory);
+      }
+      if (document.getElementById(DASHBOARD_ID)) renderDashboard();
+      if (document.getElementById(BUY_PAGE_ID)?.classList.contains('show')) renderMenuBuyPage();
+    }
+
+    window.dispatchEvent(new CustomEvent('hapycure:menu-updated', {
+      detail: { version: menuVersion, count: MENU.length }
+    }));
+  }
+
+  function bindMerchantCatalog() {
+    if (catalogUnsubscribe || !window.HapycureMerchantCatalog) return;
+    catalogUnsubscribe = window.HapycureMerchantCatalog.subscribe(applyMerchantCatalog, error => {
+      console.error('Live merchant menu unavailable:', error);
+    });
   }
 
   function loadVegFilter() {
@@ -136,9 +164,12 @@
     const items = visibleMenuItems();
     const eyebrow = vegOnly ? 'VEGETARIAN DISHES' : 'ALL AVAILABLE DISHES';
     const countLabel = items.length + (vegOnly ? ' veg ' : ' ') + (items.length === 1 ? 'dish' : 'dishes');
+    const content = items.length
+      ? items.map(homeRecommendedCardMarkup).join('')
+      : '<div class="hp-category-empty"><h2>No merchant dishes available yet</h2><p>Dishes will appear automatically after a partner publishes them.</p></div>';
     return '<section class="hp-home-recommended" id="' + HOME_RECOMMENDED_ID + '" aria-labelledby="hpHomeRecommendedTitle">' +
       '<div class="hp-home-recommended-head"><div><span>' + eyebrow + '</span><h2 id="hpHomeRecommendedTitle">Recommended for you</h2></div><strong>' + countLabel + '</strong></div>' +
-      '<div class="hp-home-recommended-grid">' + items.map(homeRecommendedCardMarkup).join('') + '</div>' +
+      '<div class="hp-home-recommended-grid">' + content + '</div>' +
       '</section>';
   }
 
@@ -180,7 +211,7 @@
     menuPage.id = CATEGORY_PAGE_ID;
     menuPage.className = 'hp-category-menu-page';
     menuPage.setAttribute('aria-hidden', 'true');
-    menuPage.innerHTML = '<div class="hp-category-menu-screen"><header class="hp-category-menu-header"><button type="button" class="hp-category-menu-back" data-home-category-close aria-label="Back to categories"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button><div><span>GURUJI\'S KITCHEN MENU</span><h1 id="hpCategoryMenuTitle">Category</h1></div><strong id="hpCategoryMenuCount" aria-live="polite"></strong></header><div class="hp-category-menu-content" id="hpCategoryMenuContent"></div></div>';
+    menuPage.innerHTML = '<div class="hp-category-menu-screen"><header class="hp-category-menu-header"><button type="button" class="hp-category-menu-back" data-home-category-close aria-label="Back to categories"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button><div><span>LIVE PARTNER MENU</span><h1 id="hpCategoryMenuTitle">Category</h1></div><strong id="hpCategoryMenuCount" aria-live="polite"></strong></header><div class="hp-category-menu-content" id="hpCategoryMenuContent"></div></div>';
     page.appendChild(menuPage);
     return menuPage;
   }
@@ -764,7 +795,8 @@
   function isItemAllowed(item, profile) {
     const allergies = allAllergies(profile);
     const diet = String(profile.dietType || '').toLowerCase();
-    const itemAllergens = item.allergens.map(normalizeAllergy);
+    const itemAllergens = (item.allergens || []).map(normalizeAllergy);
+    if (['vegetarian', 'vegan'].includes(diet) && !item.isVeg) return false;
     if (diet === 'vegan' && itemAllergens.some(allergen => allergen === 'milk' || allergen === 'eggs')) return false;
     if (allergies.some(allergy => itemAllergens.includes(allergy))) return false;
     const itemText = normalizeAllergy(`${item.name} ${item.description || ''}`);
@@ -772,25 +804,8 @@
     return true;
   }
 
-  function goalScore(item, goal) {
-    let score = 0;
-    if (goal === 'gain-muscle') {
-      score += item.protein * 2;
-      if (item.tags.includes('protein')) score += 18;
-    } else if (goal === 'lose-weight') {
-      score += item.protein * 1.4;
-      score -= item.calories * 0.035;
-      if (item.tags.includes('light')) score += 20;
-      if (item.tags.includes('rich')) score -= 18;
-    } else if (goal === 'eat-healthier') {
-      if (item.tags.includes('balanced')) score += 22;
-      if (item.tags.includes('light')) score += 14;
-      if (item.tags.includes('rich')) score -= 12;
-    } else {
-      if (item.tags.includes('balanced')) score += 15;
-      score += item.protein * 0.5;
-    }
-    return score;
+  function menuScore(item) {
+    return item.price > 0 ? 1 / item.price : 0;
   }
 
   function stringSeed(value) {
@@ -801,7 +816,7 @@
     return visibleMenuItems()
       .filter(item => item.types.includes(type) && isItemAllowed(item, profile))
       .sort((a, b) => {
-        const difference = goalScore(b, profile.goal) - goalScore(a, profile.goal);
+        const difference = menuScore(b) - menuScore(a);
         return difference || a.price - b.price;
       });
   }
@@ -844,7 +859,7 @@
     });
 
     return {
-      version: MENU_VERSION,
+      version: menuVersion,
       weekStart: localDateValue(weekStart),
       profileFingerprint: profileFingerprint(profile),
       vegOnly,
@@ -858,7 +873,7 @@
     const expectedWeek = localDateValue(startOfCurrentWeek());
     try {
       const saved = JSON.parse(localStorage.getItem(planKey()) || 'null');
-      if (saved && saved.version === MENU_VERSION && saved.weekStart === expectedWeek && saved.profileFingerprint === profileFingerprint(profile) && saved.vegOnly === vegOnly && Array.isArray(saved.days) && saved.days.length === 7) return saved;
+      if (saved && saved.version === menuVersion && saved.weekStart === expectedWeek && saved.profileFingerprint === profileFingerprint(profile) && saved.vegOnly === vegOnly && Array.isArray(saved.days) && saved.days.length === 7) return saved;
     } catch (error) {}
     const freshPlan = generatePlan(profile);
     localStorage.setItem(planKey(), JSON.stringify(freshPlan));
@@ -906,10 +921,7 @@
 
   function recommendationLabel(item, profile) {
     if (item.unavailable) return 'Needs review';
-    if (profile.goal === 'gain-muscle' && item.tags.includes('protein')) return 'Protein-focused';
-    if (profile.goal === 'lose-weight' && item.tags.includes('light')) return 'Lighter choice';
-    if (item.tags.includes('balanced')) return 'Balanced pick';
-    return 'Menu match';
+    return 'Available from partner';
   }
 
   function dayTotals(day) {
@@ -953,15 +965,18 @@
     const matches = !searchTerm || `${item.name} ${meal.slotLabel} ${item.description || ''}`.toLowerCase().includes(searchTerm);
     const unavailableClass = item.unavailable ? ' hp-ai-meal-unavailable' : '';
     const replaceButton = item.unavailable
-      ? '<button type="button" data-ai-replace="' + dayIndex + ':' + safe(meal.slotKey) + '">Find safe option</button>'
+      ? '<button type="button" data-ai-replace="' + dayIndex + ':' + safe(meal.slotKey) + '">Find available option</button>'
       : '<button type="button" data-ai-replace="' + dayIndex + ':' + safe(meal.slotKey) + '">Replace</button>';
+    const nutrition = item.nutritionAvailable
+      ? `<span>~${item.calories} kcal</span><span>~${item.protein}g protein</span>`
+      : '';
 
     return `<article class="hp-ai-meal-card${matches ? '' : ' hp-ai-search-hidden'}${unavailableClass}">
       <div class="hp-ai-meal-icon ${safe(meal.type)}">${slotIcon(meal.type)}</div>
       <div class="hp-ai-meal-copy">
         <div class="hp-ai-meal-top"><span>${safe(meal.slotLabel)} · ${safe(meal.time)}</span><strong>${item.unavailable ? '—' : `₹${item.price}`}</strong></div>
         <h3>${safe(item.name)}</h3>${item.description ? `<p>${safe(item.description)}</p>` : ''}
-        <div class="hp-ai-meal-meta"><span>${safe(item.serving)}</span>${item.unavailable ? '' : `<span>~${item.calories} kcal</span><span>~${item.protein}g protein</span>`}</div>
+        <div class="hp-ai-meal-meta"><span>${safe(item.serving)}</span>${item.unavailable ? '' : nutrition}</div>
         <div class="hp-ai-meal-footer"><span>${safe(recommendationLabel(item, profile))}</span>${replaceButton}</div>
       </div>
     </article>`;
@@ -979,18 +994,18 @@
       <div class="hp-ai-hero">
         <div class="hp-ai-hero-top"><span class="hp-ai-kicker"><i>✦</i> AI MADE DIET</span><button class="hp-ai-refresh" type="button" data-ai-action="regenerate" aria-label="Regenerate weekly diet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5"></path><path d="M19 11a7 7 0 1 0 .3 4"></path></svg></button></div>
         <h1>${safe(greeting())}, ${safe(firstName())}</h1>
-        <p>Your weekly meals are matched with your profile and the dishes currently available at Guruji's Kitchen.</p>
+        <p>Your weekly menu uses only dishes currently published by Hapycure partners.</p>
         <div class="hp-ai-profile-chips"><span>${safe(goalLabel(profile.goal))}</span><span>${safe(dietLabel(profile.dietType))}</span><span>${Number(profile.mealsPerDay) || 4} meals/day</span></div>
       </div>
       ${notices.length ? `<div class="hp-ai-safety-note"><strong>Before ordering</strong>${notices.map(notice => `<p>${safe(notice)}</p>`).join('')}</div>` : ''}
-      ${week.unavailable ? `<div class="hp-ai-safety-note"><strong>Plan needs attention</strong><p>${week.unavailable} meal slot${week.unavailable === 1 ? '' : 's'} could not be matched safely. Replace them before ordering.</p></div>` : ''}
-      <div class="hp-ai-summary-row"><div><span>This week</span><strong>${week.meals}</strong><small>planned meals</small></div><div><span>Estimated total</span><strong>₹${week.price}</strong><small>menu pricing</small></div><div><span>Daily average</span><strong>~${Math.round(week.calories / 7)}</strong><small>kcal</small></div></div>
+      ${week.unavailable ? `<div class="hp-ai-safety-note"><strong>Plan needs attention</strong><p>${week.unavailable} meal slot${week.unavailable === 1 ? '' : 's'} has no matching active merchant dish yet.</p></div>` : ''}
+      <div class="hp-ai-summary-row"><div><span>This week</span><strong>${week.meals}</strong><small>planned meals</small></div><div><span>Estimated total</span><strong>₹${week.price}</strong><small>menu pricing</small></div><div><span>Live partners</span><strong>${new Set(MENU.map(item => item.restaurantId)).size}</strong><small>current kitchens</small></div></div>
       <div class="hp-ai-section-head"><div><span>YOUR 7-DAY PLAN</span><h2>${safe(longDate(day.date))}</h2></div><button type="button" data-ai-action="full-week">View full week</button></div>
       <div class="hp-ai-day-tabs" aria-label="Select a day">${dayTabsMarkup()}</div>
       <div class="hp-ai-meal-list" id="hpAiMealList">${day.meals.map(meal => mealCardMarkup(meal, selectedDay, profile)).join('')}<div class="hp-ai-search-empty" id="hpAiSearchEmpty">No meal in this day matches your search.</div></div>
-      <div class="hp-ai-day-total"><div><span>Today's plan</span><strong>${day.meals.length} meals · ~${totals.calories} kcal · ~${totals.protein}g protein</strong></div><strong>₹${totals.price}</strong></div>
-      <button class="hp-ai-order-button" type="button" data-ai-action="order" ${orderDisabled ? 'disabled aria-disabled="true"' : ''}><span><small>7-day plan</small><strong>${orderDisabled ? 'Replace unsafe meals first' : 'Order this week'}</strong></span><span>₹${week.price} <b>→</b></span></button>
-      <p class="hp-ai-disclaimer">Calories and protein are frontend estimates until verified nutrition data and the recommendation API are connected. Hapycure does not replace medical advice.</p>
+      <div class="hp-ai-day-total"><div><span>Today's plan</span><strong>${day.meals.length} meals from the live partner menu</strong></div><strong>₹${totals.price}</strong></div>
+      <button class="hp-ai-order-button" type="button" data-ai-action="order" ${orderDisabled ? 'disabled aria-disabled="true"' : ''}><span><small>7-day plan</small><strong>${orderDisabled ? 'Some meal slots are unavailable' : 'Order this week'}</strong></span><span>₹${week.price} <b>→</b></span></button>
+      <p class="hp-ai-disclaimer">Dish names, prices and availability come directly from Hapycure partners.</p>
     </section>`;
   }
 
@@ -1037,8 +1052,8 @@
     if (!meal) return;
     const current = itemById(meal.itemId);
     const choices = availableForType(meal.type, profile).filter(item => item.id !== current.id);
-    const list = choices.map(item => `<button type="button" class="hp-ai-replacement" data-ai-use-replacement="${dayIndex}:${safe(slotKey)}:${safe(item.id)}"><span><strong>${safe(item.name)}</strong><small>${safe(item.serving)} · ~${item.protein}g protein</small></span><span>₹${item.price}<b>+</b></span></button>`).join('');
-    const content = `<div class="hp-ai-current-choice"><span>Current ${safe(meal.slotLabel)}</span><strong>${safe(current.name)}</strong></div><div class="hp-ai-replacement-list">${list}</div>${choices.length ? '' : '<p class="hp-ai-no-choice">No other menu item currently matches this meal and your saved avoid-list.</p>'}`;
+    const list = choices.map(item => `<button type="button" class="hp-ai-replacement" data-ai-use-replacement="${dayIndex}:${safe(slotKey)}:${safe(item.id)}"><span><strong>${safe(item.name)}</strong><small>${safe(item.kitchen)} · ${safe(item.serving)}</small></span><span>₹${item.price}<b>+</b></span></button>`).join('');
+    const content = `<div class="hp-ai-current-choice"><span>Current ${safe(meal.slotLabel)}</span><strong>${safe(current.name)}</strong></div><div class="hp-ai-replacement-list">${list}</div>${choices.length ? '' : '<p class="hp-ai-no-choice">No other active merchant dish currently matches this meal.</p>'}`;
     openOverlay('PERSONALIZE MEAL', `Replace ${meal.slotLabel}`, content);
   }
 
@@ -1076,7 +1091,7 @@
     if (totals.unavailable) return;
     localStorage.setItem(orderDraftKey(), JSON.stringify({
       source: 'ai-made-diet',
-      menuVersion: MENU_VERSION,
+      menuVersion,
       plan,
       estimatedMenuTotal: totals.price,
       meals: totals.meals,
@@ -1337,6 +1352,7 @@
   }
 
   function boot() {
+    bindMerchantCatalog();
     queueMount();
     const root = document.getElementById('root');
     if (root && !observer) {

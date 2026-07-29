@@ -1,30 +1,10 @@
-const MENU_VERSION = 'guruji-kitchen-menu-v2';
 const DEFAULT_MODEL = 'gemini-2.5-flash';
-const MAX_BODY_BYTES = 48 * 1024;
+const MAX_BODY_BYTES = 160 * 1024;
 const REQUEST_WINDOW_MS = 60 * 1000;
 const REQUEST_LIMIT = 8;
 
 const requestBuckets = new Map();
-
-const MENU = Object.freeze([
-  { id: 'moong-dal-chilla', name: 'Moong Dal Chilla', types: ['breakfast', 'snack'], price: 100, calories: 360, protein: 18, tags: ['protein', 'balanced', 'gluten-free'], allergens: [] },
-  { id: 'sambar-idli', name: 'Sambar Idli', types: ['breakfast', 'snack'], price: 100, calories: 340, protein: 11, tags: ['light', 'balanced', 'gluten-free'], allergens: [] },
-  { id: 'sandwich', name: 'Vegetable Sandwich', types: ['breakfast', 'snack'], price: 100, calories: 410, protein: 13, tags: ['balanced'], allergens: ['gluten', 'milk'] },
-  { id: 'appe', name: 'Appe', types: ['breakfast', 'snack'], price: 100, calories: 280, protein: 8, tags: ['light', 'gluten-free'], allergens: [] },
-  { id: 'besan-chilla', name: 'Besan Chilla', types: ['breakfast', 'snack'], price: 80, calories: 330, protein: 15, tags: ['protein', 'balanced', 'gluten-free'], allergens: [] },
-  { id: 'aloo-poha', name: 'Aloo Poha', types: ['breakfast', 'snack'], price: 120, calories: 390, protein: 8, tags: ['balanced', 'gluten-free'], allergens: ['peanuts'] },
-  { id: 'healthy-thali', name: "Chef's Healthy Thali", types: ['lunch', 'dinner'], price: 120, calories: 690, protein: 25, tags: ['protein', 'balanced'], allergens: ['gluten', 'milk'] },
-  { id: 'moong-dal-khichdi', name: 'Moong Dal Khichdi', types: ['lunch', 'dinner'], price: 80, calories: 430, protein: 15, tags: ['light', 'balanced', 'gluten-free'], allergens: [] },
-  { id: 'dahi-tadka-sabji', name: 'Dahi Tadka Sabji', types: ['lunch', 'dinner'], price: 60, calories: 320, protein: 11, tags: ['light', 'gluten-free'], allergens: ['milk'] },
-  { id: 'chilli-paneer', name: 'Chilli Paneer', types: ['lunch', 'dinner'], price: 100, calories: 560, protein: 24, tags: ['protein', 'rich'], allergens: ['milk', 'soy'] },
-  { id: 'chilli-mushroom', name: 'Chilli Mushroom', types: ['lunch', 'dinner'], price: 100, calories: 390, protein: 10, tags: ['balanced'], allergens: ['soy'] },
-  { id: 'crispy-corn', name: 'Crispy Corn', types: ['snack', 'lunch'], price: 80, calories: 470, protein: 9, tags: ['rich', 'gluten-free'], allergens: [] }
-]);
-
-const MENU_BY_ID = new Map(MENU.map(item => [item.id, item]));
-const ALLOWED_GOALS = new Set(['lose-weight', 'gain-muscle', 'maintain-weight', 'eat-healthier']);
 const ALLOWED_DIETS = new Set(['vegetarian', 'eggetarian', 'non-vegetarian', 'vegan']);
-const ALLOWED_ACTIVITY = new Set(['sedentary', 'light', 'moderate', 'very-active']);
 const ALLOWED_SLOT_TYPES = new Set(['breakfast', 'lunch', 'snack', 'dinner']);
 
 function sendJson(res, status, payload) {
@@ -109,20 +89,35 @@ function sanitizeProfile(input) {
   const allergies = sanitizeStringArray(profile.allergies, 16).map(normalizeAllergy).filter(value => value && value !== 'none');
   const customAllergies = sanitizeStringArray(profile.customAllergies, 12).map(normalizeAllergy).filter(Boolean);
   return {
-    goal: ALLOWED_GOALS.has(profile.goal) ? profile.goal : 'eat-healthier',
     dietType: ALLOWED_DIETS.has(profile.dietType) ? profile.dietType : 'vegetarian',
-    sex: ['female', 'male', 'other'].includes(profile.sex) ? profile.sex : '',
-    age: boundedNumber(profile.age, 13, 100),
-    heightCm: boundedNumber(profile.heightCm, 100, 230),
-    weightKg: boundedNumber(profile.weightKg, 25, 300),
-    targetWeightKg: boundedNumber(profile.targetWeightKg, 25, 300),
-    activityLevel: ALLOWED_ACTIVITY.has(profile.activityLevel) ? profile.activityLevel : 'moderate',
-    mealsPerDay: boundedNumber(profile.mealsPerDay, 2, 6, 4),
-    wakeTime: /^\d{2}:\d{2}$/.test(profile.wakeTime || '') ? profile.wakeTime : '07:00',
-    sleepTime: /^\d{2}:\d{2}$/.test(profile.sleepTime || '') ? profile.sleepTime : '23:00',
-    allergies: [...new Set([...allergies, ...customAllergies])],
-    healthConditions: sanitizeStringArray(profile.healthConditions, 8).filter(value => value !== 'none')
+    allergies: [...new Set([...allergies, ...customAllergies])]
   };
+}
+
+function sanitizeMenu(input) {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set();
+  return input.slice(0, 100).map(rawItem => {
+    const item = rawItem && typeof rawItem === 'object' ? rawItem : {};
+    const id = cleanString(item.id, 180);
+    const types = sanitizeStringArray(item.types, 6)
+      .map(value => value.toLowerCase())
+      .filter(value => ALLOWED_SLOT_TYPES.has(value));
+    return {
+      id,
+      name: cleanString(item.name, 100),
+      description: cleanString(item.description, 180),
+      types: [...new Set(types)],
+      price: boundedNumber(item.price, 1, 100000, 0),
+      isVeg: item.isVeg === true,
+      tags: sanitizeStringArray(item.tags, 12),
+      allergens: sanitizeStringArray(item.allergens, 16).map(normalizeAllergy)
+    };
+  }).filter(item => {
+    if (!item.id || !item.name || !item.types.length || !item.price || seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
 }
 
 function sanitizeSchedule(input) {
@@ -154,73 +149,52 @@ function sanitizeSchedule(input) {
 
 function itemAllowed(item, profile, type) {
   if (!item || !item.types.includes(type)) return false;
-  const allergens = item.allergens.map(normalizeAllergy);
-  if (profile.dietType === 'vegan' && allergens.some(value => value === 'milk' || value === 'eggs')) return false;
-  if (profile.allergies.some(value => allergens.includes(value))) return false;
-  const text = `${item.name} ${item.allergens.join(' ')}`.toLowerCase();
-  if (profile.allergies.some(value => value.length > 2 && text.includes(value))) return false;
-  return true;
+  if (['vegetarian', 'vegan', 'eggetarian'].includes(profile.dietType) && !item.isVeg) return false;
+  if (profile.dietType === 'vegan' && item.allergens.some(value => value === 'milk' || value === 'eggs')) return false;
+  if (profile.allergies.some(value => item.allergens.includes(value))) return false;
+  const text = `${item.name} ${item.description} ${item.allergens.join(' ')}`.toLowerCase();
+  return !profile.allergies.some(value => value.length > 2 && text.includes(value));
 }
 
-function goalScore(item, profile) {
-  let score = 0;
-  if (profile.goal === 'gain-muscle') {
-    score += item.protein * 2;
-    if (item.tags.includes('protein')) score += 18;
-  } else if (profile.goal === 'lose-weight') {
-    score += item.protein * 1.4;
-    score -= item.calories * 0.035;
-    if (item.tags.includes('light')) score += 20;
-    if (item.tags.includes('rich')) score -= 18;
-  } else if (profile.goal === 'eat-healthier') {
-    if (item.tags.includes('balanced')) score += 22;
-    if (item.tags.includes('light')) score += 14;
-    if (item.tags.includes('rich')) score -= 12;
-  } else {
-    if (item.tags.includes('balanced')) score += 15;
-    score += item.protein * 0.5;
-  }
-  return score;
-}
-
-function deterministicChoice(type, profile, usedIds, seed) {
-  const choices = MENU.filter(item => itemAllowed(item, profile, type)).sort((a, b) => goalScore(b, profile) - goalScore(a, profile) || a.price - b.price);
+function deterministicChoice(menu, type, profile, usedIds, seed) {
+  const choices = menu
+    .filter(item => itemAllowed(item, profile, type))
+    .sort((a, b) => a.price - b.price || a.name.localeCompare(b.name));
   if (!choices.length) return null;
   const freshChoices = choices.filter(item => !usedIds.includes(item.id));
   const pool = freshChoices.length ? freshChoices : choices;
   return pool[Math.abs(seed) % pool.length];
 }
 
-function buildPrompt(profile, schedule) {
-  const compactMenu = MENU.map(item => ({
+function buildPrompt(profile, schedule, menu) {
+  const availableMenu = menu.map(item => ({
     id: item.id,
     name: item.name,
+    description: item.description,
     mealTypes: item.types,
     price: item.price,
-    estimatedCalories: item.calories,
-    estimatedProteinGrams: item.protein,
+    isVegetarian: item.isVeg,
     tags: item.tags,
     allergens: item.allergens
   }));
   return JSON.stringify({
-    task: 'Choose exactly one available menu item ID for every requested meal slot in this seven-day schedule.',
-    userProfile: profile,
+    task: 'Choose exactly one currently available merchant item ID for every requested slot in this seven-day schedule.',
+    dietaryPreferences: profile,
     rules: [
       'Use only item IDs from availableMenu.',
       'The selected item mealTypes must contain the requested slot type.',
       'Never select an item containing a saved allergy or avoid item.',
-      'For vegan users, never select milk or egg allergens.',
-      'Use goal, activity, age, body measurements and routine only for general wellness personalization, not diagnosis or medical treatment.',
-      'Prefer variety and avoid repeating the same item in consecutive slots when safe alternatives exist.',
-      'Return one short recommendation reason for each choice.',
-      'If no safe item exists, use itemId no-safe-menu-item.'
+      'Respect the vegetarian, eggetarian or vegan preference.',
+      'Prefer variety and avoid repeating the same item in consecutive slots when alternatives exist.',
+      'Give a short factual menu-match reason without medical or nutrition claims.',
+      'If no matching item exists, use itemId no-safe-menu-item.'
     ],
-    availableMenu: compactMenu,
+    availableMenu,
     schedule
   });
 }
 
-function responseSchema(schedule) {
+function responseSchema() {
   return {
     type: 'object',
     properties: {
@@ -255,7 +229,7 @@ function responseSchema(schedule) {
   };
 }
 
-async function callGemini(apiKey, model, profile, schedule) {
+async function callGemini(apiKey, model, profile, schedule, menu) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 26000);
   try {
@@ -267,14 +241,14 @@ async function callGemini(apiKey, model, profile, schedule) {
       },
       body: JSON.stringify({
         systemInstruction: {
-          parts: [{ text: 'You are Hapycure\'s constrained meal recommendation engine. Follow the supplied menu and safety rules exactly. Output only the requested JSON.' }]
+          parts: [{ text: 'You are Hapycure\'s constrained menu-matching engine. Follow the supplied live menu and dietary rules exactly. Output only the requested JSON.' }]
         },
-        contents: [{ role: 'user', parts: [{ text: buildPrompt(profile, schedule) }] }],
+        contents: [{ role: 'user', parts: [{ text: buildPrompt(profile, schedule, menu) }] }],
         generationConfig: {
           temperature: 0.25,
           maxOutputTokens: 4096,
           responseMimeType: 'application/json',
-          responseSchema: responseSchema(schedule)
+          responseSchema: responseSchema()
         }
       }),
       signal: controller.signal
@@ -296,7 +270,8 @@ async function callGemini(apiKey, model, profile, schedule) {
   }
 }
 
-function validateAndBuildDays(generated, schedule, profile) {
+function validateAndBuildDays(generated, schedule, profile, menu) {
+  const menuById = new Map(menu.map(item => [item.id, item]));
   const generatedDays = Array.isArray(generated?.days) ? generated.days : [];
   const byDate = new Map(generatedDays.filter(day => day && typeof day === 'object').map(day => [day.date, day]));
   const recentIds = [];
@@ -308,10 +283,10 @@ function validateAndBuildDays(generated, schedule, profile) {
 
     const meals = day.slots.map((slot, slotIndex) => {
       const aiMeal = aiBySlot.get(slot.slotKey) || aiMeals[slotIndex] || {};
-      let item = MENU_BY_ID.get(cleanString(aiMeal.itemId, 40));
+      let item = menuById.get(cleanString(aiMeal.itemId, 180));
       let source = 'gemini';
       if (!itemAllowed(item, profile, slot.type)) {
-        item = deterministicChoice(slot.type, profile, recentIds.slice(-3), (dayIndex * 11) + slotIndex);
+        item = deterministicChoice(menu, slot.type, profile, recentIds.slice(-3), (dayIndex * 11) + slotIndex);
         source = 'validated-fallback';
       }
       if (item) recentIds.push(item.id);
@@ -321,7 +296,9 @@ function validateAndBuildDays(generated, schedule, profile) {
         type: slot.type,
         time: slot.time,
         itemId: item ? item.id : 'no-safe-menu-item',
-        reason: item ? cleanString(aiMeal.reason || 'Best available match for your saved profile.', 100) : 'No current menu item safely matches this slot.',
+        reason: item
+          ? cleanString(aiMeal.reason || 'Available partner-menu match for this slot.', 100)
+          : 'No active merchant item matches this slot.',
         source
       };
     });
@@ -334,7 +311,7 @@ module.exports = async function generateDiet(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'Method not allowed.' });
   if (!sameOriginRequest(req)) return sendJson(res, 403, { ok: false, error: 'Cross-origin requests are not allowed.' });
-  if (rateLimited(req)) return sendJson(res, 429, { ok: false, error: 'Too many diet generations. Please wait a minute and try again.' });
+  if (rateLimited(req)) return sendJson(res, 429, { ok: false, error: 'Too many menu generations. Please wait a minute and try again.' });
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return sendJson(res, 503, { ok: false, error: 'Gemini API is not configured.' });
@@ -343,15 +320,19 @@ module.exports = async function generateDiet(req, res) {
     const body = parseBody(req);
     const profile = sanitizeProfile(body.profile);
     const schedule = sanitizeSchedule(body.schedule);
+    const menu = sanitizeMenu(body.menu);
+    const menuVersion = cleanString(body.menuVersion, 180);
+    if (!menu.length || !menuVersion) return sendJson(res, 422, { ok: false, error: 'No active merchant menu is available.' });
+
     const model = cleanString(process.env.GEMINI_MODEL || DEFAULT_MODEL, 80) || DEFAULT_MODEL;
-    const generated = await callGemini(apiKey, model, profile, schedule);
-    const days = validateAndBuildDays(generated, schedule, profile);
+    const generated = await callGemini(apiKey, model, profile, schedule, menu);
+    const days = validateAndBuildDays(generated, schedule, profile, menu);
 
     return sendJson(res, 200, {
       ok: true,
       source: 'gemini',
       model,
-      menuVersion: MENU_VERSION,
+      menuVersion,
       generatedAt: new Date().toISOString(),
       days
     });
@@ -360,6 +341,6 @@ module.exports = async function generateDiet(req, res) {
     if (error.message === 'invalid-schedule') return sendJson(res, 400, { ok: false, error: 'Invalid meal schedule.' });
     if (error.name === 'AbortError') return sendJson(res, 504, { ok: false, error: 'Gemini took too long to respond. Your local plan is still available.' });
     console.error('generate-diet error:', error && error.message ? error.message : error);
-    return sendJson(res, 502, { ok: false, error: 'Could not generate an AI diet right now. Your local plan is still available.' });
+    return sendJson(res, 502, { ok: false, error: 'Could not generate a menu plan right now. Your local plan is still available.' });
   }
 };
