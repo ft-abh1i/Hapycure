@@ -30,7 +30,7 @@ body.hp-mess-open {
 
 #page-home .hp-order-type.active {
   background: #fff;
-  color: #9f302a;
+  color: #E35336;
   box-shadow: 0 3px 10px rgba(48, 31, 26, .07);
 }
 
@@ -111,7 +111,7 @@ body.hp-mess-open {
 #page-home .hp-mess-header span {
   display: block;
   margin-bottom: 3px;
-  color: #a33b34;
+  color: #E35336;
   font-size: 8px;
   font-weight: 950;
   letter-spacing: 1px;
@@ -134,9 +134,9 @@ body.hp-mess-open {
   overflow: hidden;
   padding: 20px 18px;
   border-radius: 24px;
-  background: linear-gradient(145deg, #771e19, #ae4138);
+  background: linear-gradient(145deg, #E35336, #E35336);
   color: #fff;
-  box-shadow: 0 14px 30px rgba(107, 27, 22, .17);
+  box-shadow: 0 14px 30px rgba(227, 83, 54, .17);
 }
 
 #page-home .hp-mess-list-hero::after {
@@ -227,7 +227,7 @@ body.hp-mess-open {
   position: relative;
   height: 132px;
   overflow: hidden;
-  background: linear-gradient(140deg, #e8c6a4, #b96148);
+  background: linear-gradient(140deg, #e8c6a4, #E35336);
 }
 
 #page-home .hp-mess-card-image,
@@ -242,7 +242,7 @@ body.hp-mess-open {
   place-items: center;
   background:
     radial-gradient(circle at 78% 20%, rgba(255, 255, 255, .2), transparent 24%),
-    linear-gradient(140deg, #e0ad78, #a74834);
+    linear-gradient(140deg, #e0ad78, #E35336);
   color: rgba(255, 255, 255, .94);
 }
 
@@ -381,7 +381,7 @@ body.hp-mess-open {
   place-items: center;
   border-radius: 50%;
   background: #f7e9e6;
-  color: #a2342d;
+  color: #E35336;
   font-size: 14px;
 }
 
@@ -400,7 +400,7 @@ body.hp-mess-open {
   display: block;
   margin: 0 auto;
   border: 3px solid #efe7e3;
-  border-top-color: #a33b34;
+  border-top-color: #E35336;
   border-radius: 50%;
   animation: hpMessSpin .75s linear infinite;
 }
@@ -429,7 +429,7 @@ body.hp-mess-open {
   margin-top: 15px;
   padding: 10px 18px;
   border-radius: 13px;
-  background: #9f302a;
+  background: #E35336;
   color: #fff;
   font-size: 10px;
   font-weight: 950;
@@ -440,7 +440,7 @@ body.hp-mess-open {
   height: 205px;
   overflow: hidden;
   border-radius: 24px;
-  background: linear-gradient(140deg, #e0ad78, #a74834);
+  background: linear-gradient(140deg, #e0ad78, #E35336);
   box-shadow: 0 12px 27px rgba(56, 35, 28, .12);
 }
 
@@ -506,7 +506,7 @@ body.hp-mess-open {
 #page-home .hp-mess-section-title span {
   display: block;
   margin-bottom: 4px;
-  color: #a33b34;
+  color: #E35336;
   font-size: 7.5px;
   font-weight: 950;
   letter-spacing: .9px;
@@ -542,9 +542,9 @@ body.hp-mess-open {
 }
 
 #page-home .hp-mess-plan-tabs button.selected {
-  border-color: #a83b34;
+  border-color: #E35336;
   background: #fff7f5;
-  box-shadow: 0 8px 20px rgba(122, 38, 32, .08);
+  box-shadow: 0 8px 20px rgba(227, 83, 54, .08);
 }
 
 #page-home .hp-mess-plan-tabs span,
@@ -560,7 +560,7 @@ body.hp-mess-open {
 
 #page-home .hp-mess-plan-tabs strong {
   margin-top: 8px;
-  color: #a33b34;
+  color: #E35336;
   font-size: 10px;
   font-weight: 950;
 }
@@ -706,7 +706,7 @@ body.hp-mess-open {
 
 #page-home .hp-mess-menu-list b {
   background: #f8ebe8;
-  color: #a23932;
+  color: #E35336;
 }
 
 #page-home .hp-mess-feature-list span,
@@ -775,15 +775,15 @@ body.hp-mess-open {
 #page-home .hp-mess-field input:focus,
 #page-home .hp-mess-field select:focus,
 #page-home .hp-mess-field textarea:focus {
-  border-color: #ae4139;
+  border-color: #E35336;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(174, 61, 53, .08);
+  box-shadow: 0 0 0 3px rgba(227, 83, 54, .08);
 }
 
 #page-home .hp-mess-message {
   min-height: 16px;
   margin: 8px 0 0;
-  color: #b12e27;
+  color: #E35336;
   font-size: 9px;
   text-align: center;
   font-weight: 850;
@@ -926,7 +926,7 @@ body.hp-mess-open {
   min-height: 50px;
   margin-top: 18px;
   border-radius: 16px;
-  background: #9f302a;
+  background: #E35336;
   color: #fff;
   font-size: 11px;
   font-weight: 950;

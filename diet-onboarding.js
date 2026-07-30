@@ -144,9 +144,9 @@
         font-weight: 750;
       }
       #${OVERLAY_ID} .hp-custom-allergy-field input:focus {
-        border-color: #dd6b64;
+        border-color: #E35336;
         background: #fff;
-        box-shadow: 0 0 0 3px rgba(208, 52, 44, .08);
+        box-shadow: 0 0 0 3px rgba(227, 83, 54, .08);
       }
       #${OVERLAY_ID} .hp-routine-grid .hp-option-icon {
         display: none !important;
@@ -156,17 +156,17 @@
       }
       #${OVERLAY_ID} .hp-attention {
         border-radius: 18px;
-        outline: 2px solid rgba(208, 52, 44, .36);
+        outline: 2px solid rgba(227, 83, 54, .36);
         outline-offset: 8px;
         animation: hpSectionAttention .55s ease 2;
       }
       #${OVERLAY_ID} .hp-routine-details .hp-input-field.invalid > div {
-        border-color: #d0342c;
-        box-shadow: 0 0 0 3px rgba(208, 52, 44, .08);
+        border-color: #E35336;
+        box-shadow: 0 0 0 3px rgba(227, 83, 54, .08);
       }
       @keyframes hpSectionAttention {
-        0%, 100% { outline-color: rgba(208, 52, 44, .2); }
-        50% { outline-color: rgba(208, 52, 44, .72); }
+        0%, 100% { outline-color: rgba(227, 83, 54, .2); }
+        50% { outline-color: rgba(227, 83, 54, .72); }
       }
     `;
     document.head.appendChild(style);

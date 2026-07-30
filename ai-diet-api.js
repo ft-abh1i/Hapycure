@@ -232,31 +232,31 @@
     style.textContent = `
       #page-home .hp-ai-api-status{display:flex;align-items:center;gap:9px;margin:11px 1px 0;padding:10px 12px;border:1px solid #e7dfdc;border-radius:14px;background:rgba(255,255,255,.82);color:#685d58;font-size:10.5px;line-height:1.35;font-weight:750}
       #page-home .hp-ai-api-status::before{content:'';width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:#96908c}
-      #page-home .hp-ai-api-status.loading::before{border:2px solid #ead7d3;border-top-color:#a52c26;background:transparent;animation:hpAiApiSpin .75s linear infinite}
+      #page-home .hp-ai-api-status.loading::before{border:2px solid #ead7d3;border-top-color:#E35336;background:transparent;animation:hpAiApiSpin .75s linear infinite}
       #page-home .hp-ai-api-status.success::before{background:#2f9e44}
       #page-home .hp-ai-api-status.error::before{background:#d87b20}
       @keyframes hpAiApiSpin{to{transform:rotate(360deg)}}
       #${FLOW_ID}{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;overflow:hidden;padding:24px;background:#fbf8f5;color:#241c19;text-align:center;font-family:Inter,-apple-system,BlinkMacSystemFont,Arial,sans-serif}
       #${FLOW_ID}::before,#${FLOW_ID}::after{content:'';position:absolute;border-radius:50%;pointer-events:none}
-      #${FLOW_ID}::before{width:320px;height:320px;top:-190px;right:-150px;background:rgba(131,30,25,.08)}
-      #${FLOW_ID}::after{width:250px;height:250px;bottom:-170px;left:-130px;background:rgba(131,30,25,.06)}
+      #${FLOW_ID}::before{width:320px;height:320px;top:-190px;right:-150px;background:rgba(227,83,54,.08)}
+      #${FLOW_ID}::after{width:250px;height:250px;bottom:-170px;left:-130px;background:rgba(227,83,54,.06)}
       #${FLOW_ID} .hp-gen-shell{position:relative;z-index:1;width:min(100%,390px)}
       #${FLOW_ID} .hp-gen-logo{width:146px;height:48px;margin:0 auto 30px;object-fit:contain}
       #${FLOW_ID} .hp-gen-visual{position:relative;width:154px;height:154px;margin:0 auto 31px;display:grid;place-items:center}
-      #${FLOW_ID} .hp-gen-ring{position:absolute;inset:0;border:1px solid rgba(131,30,25,.16);border-radius:50%;animation:hpGenPulse 2.1s ease-in-out infinite}
+      #${FLOW_ID} .hp-gen-ring{position:absolute;inset:0;border:1px solid rgba(227,83,54,.16);border-radius:50%;animation:hpGenPulse 2.1s ease-in-out infinite}
       #${FLOW_ID} .hp-gen-ring:nth-child(2){inset:17px;animation-delay:.28s}
-      #${FLOW_ID} .hp-gen-orbit{position:absolute;inset:7px;border-radius:50%;border-top:2px solid #8d211c;border-right:2px solid transparent;animation:hpGenOrbit 1.15s linear infinite}
-      #${FLOW_ID} .hp-gen-core{width:76px;height:76px;display:grid;place-items:center;border-radius:25px;background:linear-gradient(145deg,#711713,#a4322b);color:#fff;box-shadow:0 18px 38px rgba(105,24,20,.24);font-size:31px;font-weight:900;transform:rotate(8deg)}
+      #${FLOW_ID} .hp-gen-orbit{position:absolute;inset:7px;border-radius:50%;border-top:2px solid #E35336;border-right:2px solid transparent;animation:hpGenOrbit 1.15s linear infinite}
+      #${FLOW_ID} .hp-gen-core{width:76px;height:76px;display:grid;place-items:center;border-radius:25px;background:linear-gradient(145deg,#E35336,#E35336);color:#fff;box-shadow:0 18px 38px rgba(227,83,54,.24);font-size:31px;font-weight:900;transform:rotate(8deg)}
       #${FLOW_ID} .hp-gen-core span{transform:rotate(-8deg)}
-      #${FLOW_ID} .hp-gen-eyebrow{margin:0 0 9px;color:#9b2a24;font-size:10px;font-weight:950;letter-spacing:1.5px}
+      #${FLOW_ID} .hp-gen-eyebrow{margin:0 0 9px;color:#E35336;font-size:10px;font-weight:950;letter-spacing:1.5px}
       #${FLOW_ID} h1{max-width:350px;margin:0 auto;color:#241c19;font-size:29px;line-height:1.08;letter-spacing:-1px;font-weight:950}
       #${FLOW_ID} .hp-gen-message{min-height:42px;max-width:310px;margin:13px auto 0;color:#776b66;font-size:13px;line-height:1.55;font-weight:650}
       #${FLOW_ID} .hp-gen-progress{height:5px;margin:27px auto 0;overflow:hidden;border-radius:999px;background:#eee4df}
-      #${FLOW_ID} .hp-gen-progress span{display:block;width:34%;height:100%;border-radius:inherit;background:#8d211c;animation:hpGenProgress 1.45s ease-in-out infinite}
+      #${FLOW_ID} .hp-gen-progress span{display:block;width:34%;height:100%;border-radius:inherit;background:#E35336;animation:hpGenProgress 1.45s ease-in-out infinite}
       #${FLOW_ID} .hp-gen-steps{display:flex;justify-content:center;gap:7px;margin-top:17px;color:#9a8e88;font-size:9px;font-weight:850}
       #${FLOW_ID} .hp-gen-steps span{padding:7px 9px;border-radius:999px;background:#f1ebe7}
       #${FLOW_ID} .hp-gen-steps span.done{background:#e9f6ec;color:#287b3b}
-      #${FLOW_ID} .hp-gen-steps span.active{background:#f7e5e2;color:#952821}
+      #${FLOW_ID} .hp-gen-steps span.active{background:#f7e5e2;color:#E35336}
       #${FLOW_ID}.ready .hp-gen-orbit{animation-duration:2.4s}
       #${FLOW_ID}.ready .hp-gen-core{background:linear-gradient(145deg,#287b3b,#3d9c57)}
       @keyframes hpGenOrbit{to{transform:rotate(360deg)}}
