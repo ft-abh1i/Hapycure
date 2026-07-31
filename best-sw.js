@@ -1,44 +1,8 @@
-const PATCH_VERSION = '2026-07-31-order-scroll-v31';
+const PATCH_VERSION = '2026-07-31-cart-footer-orders-scroll-v32';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const ORDER_SCROLL_PATCH = `
 <style id="hapycure-order-scroll-fix">
-  #page-home #ordersPage {
-    position: fixed !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y !important;
-  }
-
-  #page-home #ordersPage .notification-screen {
-    width: 100% !important;
-    min-height: 100dvh !important;
-    height: max-content !important;
-    overflow: visible !important;
-    padding: 0 !important;
-  }
-
-  #page-home #ordersPage .notify-head {
-    position: sticky !important;
-    top: 0;
-    z-index: 5;
-    height: 68px;
-    margin: 0;
-    padding: max(8px, env(safe-area-inset-top)) 16px 0;
-    background: #fff;
-  }
-
-  #page-home #ordersPage .hp-menu-orders-root {
-    min-height: calc(100dvh - 68px) !important;
-    padding-bottom: calc(104px + env(safe-area-inset-bottom));
-  }
-
   #page-home #cartPage {
     position: fixed !important;
     inset: 0 !important;
@@ -49,28 +13,101 @@ const ORDER_SCROLL_PATCH = `
   }
 
   #page-home #cartPage .notification-screen {
+    position: relative !important;
     width: 100% !important;
     height: 100dvh !important;
     min-height: 0 !important;
     display: flex !important;
-    overflow: hidden !important;
     flex-direction: column !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+  }
+
+  #page-home #cartPage .notify-head {
+    height: 68px !important;
+    flex: 0 0 68px !important;
+    margin: 0 !important;
+    padding: max(8px, env(safe-area-inset-top)) 16px 0 !important;
+    background: #fff !important;
   }
 
   #page-home #cartPage .hp-menu-cart-root {
+    width: 100% !important;
     flex: 1 1 auto !important;
     min-height: 0 !important;
+    display: grid !important;
+    grid-template-rows: minmax(0, 1fr) auto !important;
     overflow: hidden !important;
   }
 
   #page-home #cartPage .hp-menu-cart-scroll {
-    flex: 1 1 auto !important;
     min-height: 0 !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
+    padding-bottom: 24px !important;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y !important;
+  }
+
+  #page-home #cartPage .hp-menu-cart-checkout {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    z-index: 20 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+    background: #fff !important;
+  }
+
+  #page-home #ordersPage {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
+  #page-home #ordersPage .notification-screen {
+    width: 100% !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+  }
+
+  #page-home #ordersPage .notify-head {
+    position: relative !important;
+    top: auto !important;
+    z-index: 5;
+    height: 68px !important;
+    flex: 0 0 68px !important;
+    margin: 0 !important;
+    padding: max(8px, env(safe-area-inset-top)) 16px 0 !important;
+    background: #fff !important;
+  }
+
+  #page-home #ordersPage .hp-menu-orders-root {
+    width: 100% !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding: 15px 14px calc(24px + env(safe-area-inset-bottom)) !important;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y !important;
+  }
+
+  #page-home #ordersPage .hp-menu-orders-empty {
+    min-height: 100% !important;
+    height: auto !important;
   }
 
   #page-home .hp-menu-buy-page {
@@ -104,10 +141,8 @@ function patchAppShell(html) {
     .replace(/\.\/weekly-services\.css\?v=[^"']+/g, './weekly-services.css?v=' + PATCH_VERSION)
     .replace(/\.\/weekly-services\.js\?v=[^"']+/g, './weekly-services.js?v=' + PATCH_VERSION);
 
-  if (!patched.includes('id="hapycure-order-scroll-fix"')) {
-    patched = patched.replace('</head>', ORDER_SCROLL_PATCH + '\n</head>');
-  }
-
+  patched = patched.replace(/<style id="hapycure-order-scroll-fix">[\s\S]*?<\/style>/, '');
+  patched = patched.replace('</head>', ORDER_SCROLL_PATCH + '\n</head>');
   return patched;
 }
 
@@ -144,7 +179,7 @@ self.addEventListener('fetch', function (event) {
 
       const patchedResponse = new Response(patchAppShell(html), {
         status: response.status,
-        statusText: response.statusText,
+        statusText: response.status.statusText,
         headers
       });
 
