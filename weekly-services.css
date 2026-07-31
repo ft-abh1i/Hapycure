@@ -1,26 +1,97 @@
-@import url("./weekly-services.base.css?v=2026-07-31-orders-scroll-v30");
+@import url("./weekly-services.base.css?v=2026-07-31-order-scroll-v31");
 
-/* Keep fixed order/cart overlays vertically scrollable on mobile browsers. */
+/* Mobile scrolling fixes for Orders, Cart, and checkout flows. */
 #page-home #ordersPage {
-  overflow-x: hidden;
-  overflow-y: auto;
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
+  touch-action: pan-y !important;
 }
 
 #page-home #ordersPage .notification-screen {
-  height: auto;
-  min-height: 100dvh;
-  overflow: visible;
+  width: 100%;
+  min-height: 100dvh !important;
+  height: max-content !important;
+  overflow: visible !important;
+  padding: 0 !important;
+}
+
+#page-home #ordersPage .notify-head {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  height: 68px;
+  margin: 0;
+  padding: max(8px, env(safe-area-inset-top)) 16px 0;
+  background: #fff;
 }
 
 #page-home #ordersPage .hp-menu-orders-root {
-  min-height: calc(100dvh - 72px);
+  min-height: calc(100dvh - 68px) !important;
+  padding-bottom: calc(104px + env(safe-area-inset-bottom));
 }
 
-#page-home #cartPage .hp-menu-cart-scroll,
-#page-home .hp-menu-buy-page {
+#page-home #cartPage {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+}
+
+#page-home #cartPage .notification-screen {
+  width: 100%;
+  height: 100dvh !important;
+  min-height: 0 !important;
+  display: flex !important;
+  overflow: hidden !important;
+  flex-direction: column !important;
+}
+
+#page-home #cartPage .hp-menu-cart-root {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+#page-home #cartPage .hp-menu-cart-scroll {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
+  touch-action: pan-y !important;
+}
+
+#page-home .hp-menu-buy-page {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y !important;
+}
+
+#page-home .hp-menu-buy-screen {
+  min-height: 100dvh !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+#page-home .hp-menu-buy-header {
+  position: sticky !important;
+  top: 0;
+  z-index: 5;
 }
