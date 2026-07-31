@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-31-remove-bottom-fade-v26';
+const PATCH_VERSION = '2026-07-31-category-images-v27';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `

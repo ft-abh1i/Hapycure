@@ -127,7 +127,7 @@
     if (normalized === 'lunch') return ['lunch'];
     if (normalized === 'dinner') return ['dinner'];
     if (normalized === 'snacks' || normalized === 'snack') return ['snack'];
-    if (normalized === 'drinks' || normalized === 'drink') return ['drink'];
+    if (normalized === 'drinks' || normalized === 'drink' || normalized === 'beverages' || normalized === 'beverage') return ['drink'];
     if (normalized === 'desserts' || normalized === 'dessert') return ['dessert'];
     return [];
   }
