@@ -88,7 +88,7 @@
         openCategoryMenu(activeCategory.dataset.homeCategory);
       }
       if (document.getElementById(DASHBOARD_ID)) renderDashboard();
-      if (document.getElementById(BUY_PAGE_ID)?.classList.contains('show')) renderMenuBuyPage();
+      if (document.getElementById(BUY_PAGE_ID)?.classList.contains('show') && !buyNowState?.orderPlaced) renderMenuBuyPage();
     }
 
     window.dispatchEvent(new CustomEvent('hapycure:menu-updated', {
@@ -354,13 +354,22 @@
     const image = menuItemImageMarkup(item, 'hp-menu-cart-item-image');
     return '<article class="hp-menu-cart-item">' +
       '<div class="hp-menu-cart-item-icon' + (image ? ' has-image' : '') + '">' + (image || menuCartIcon()) + '</div>' +
-      '<div class="hp-menu-cart-item-copy"><div class="hp-menu-cart-item-head"><div><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen) + ' · ' + safe(item.serving) + '</small></div><strong>₹' + safe(item.price * entry.quantity) + '</strong></div>' +
+      '<div class="hp-menu-cart-item-copy"><div class="hp-menu-cart-item-head"><div><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen) + ' · ' + safe(item.serving) + '</small><span>₹' + safe(item.price) + ' each</span></div><strong>₹' + safe(item.price * entry.quantity) + '</strong></div>' +
       '<div class="hp-menu-cart-item-actions"><button type="button" class="hp-menu-cart-remove" data-menu-cart-remove="' + safe(item.id) + '">Remove</button><div class="hp-menu-cart-quantity" aria-label="Quantity for ' + safe(item.name) + '"><button type="button" data-menu-cart-item="' + safe(item.id) + '" data-menu-cart-change="-1" aria-label="Decrease quantity">−</button><span>' + safe(entry.quantity) + '</span><button type="button" data-menu-cart-item="' + safe(item.id) + '" data-menu-cart-change="1" aria-label="Increase quantity">+</button></div></div></div>' +
       '</article>';
   }
 
+  function menuCartAddressMarkup() {
+    const address = String(localStorage.getItem('nutritiliousLiveLocation') || '').trim();
+    const icon = '<span class="hp-menu-cart-address-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span>';
+    if (!address) {
+      return '<section class="hp-menu-cart-address missing">' + icon + '<div><span>DELIVERY ADDRESS</span><h2>Add a location to continue</h2><p>We need your address before checkout.</p></div><button type="button" data-menu-cart-location>Add</button></section>';
+    }
+    return '<section class="hp-menu-cart-address">' + icon + '<div><span>DELIVER TO</span><h2>' + safe(address) + '</h2><p>Delivery instructions can be added at checkout.</p></div><button type="button" data-menu-cart-location>Change</button></section>';
+  }
+
   function emptyMenuCartMarkup() {
-    return '<div class="empty-notify hp-menu-cart-empty"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M6 6h15l-2 8H8L6 6z"></path><path d="M6 6 5 3H2"></path><circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle></svg></div><h2>Cart is empty</h2><p>Add a dish from any food category to see it here.</p></div>';
+    return '<div class="empty-notify hp-menu-cart-empty"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M6 6h15l-2 8H8L6 6z"></path><path d="M6 6 5 3H2"></path><circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle></svg></div><h2>Your cart is empty</h2><p>Add something delicious and it will appear here.</p><button type="button" data-menu-cart-shop>Browse dishes</button></div>';
   }
 
   function renderMenuCart() {
@@ -380,11 +389,20 @@
       root.innerHTML = emptyMenuCartMarkup();
       return;
     }
+    const count = cart.reduce((sum, entry) => sum + entry.quantity, 0);
     const total = cart.reduce((sum, entry) => {
       const item = MENU.find(menuItem => menuItem.id === entry.id);
       return sum + (item ? item.price * entry.quantity : 0);
     }, 0);
-    root.innerHTML = '<div class="hp-menu-cart-list">' + cart.map(menuCartItemMarkup).join('') + '</div><section class="hp-menu-cart-summary"><div><span>Item total</span><strong>₹' + safe(total) + '</strong></div><p>Delivery charges and final total will be shown at checkout.</p></section>';
+    root.innerHTML =
+      '<div class="hp-menu-cart-scroll">' +
+        '<div class="hp-menu-cart-overview"><div><span>YOUR ORDER</span><h2>' + safe(count) + (count === 1 ? ' item' : ' items') + ' in your cart</h2></div><b>COD available</b></div>' +
+        menuCartAddressMarkup() +
+        '<section class="hp-menu-cart-items-section"><div class="hp-menu-cart-section-head"><h2>Order items</h2><span>' + safe(count) + '</span></div><div class="hp-menu-cart-list">' + cart.map(menuCartItemMarkup).join('') + '</div></section>' +
+        '<section class="hp-menu-cart-summary"><h2>Bill details</h2><div><span>Item total</span><strong>₹' + safe(total) + '</strong></div><div><span>Delivery fee</span><strong class="free">FREE</strong></div><div class="total"><span>To pay</span><strong>₹' + safe(total + DELIVERY_FEE) + '</strong></div></section>' +
+        '<div class="hp-menu-cart-trust"><span>✓</span><div><strong>Freshly prepared</strong><small>Your order is prepared after confirmation.</small></div></div>' +
+      '</div>' +
+      '<footer class="hp-menu-cart-checkout"><div><span>TOTAL</span><strong>₹' + safe(total + DELIVERY_FEE) + '</strong></div><button type="button" data-menu-cart-checkout>Proceed to checkout <span>›</span></button></footer>';
   }
 
   function updateMenuCartBadge() {
@@ -476,11 +494,16 @@
   }
 
   function menuOrderCardMarkup(order) {
-    const item = Array.isArray(order.items) ? order.items[0] : null;
+    const items = Array.isArray(order.items) ? order.items.filter(Boolean) : [];
+    const item = items[0];
     if (!item) return '';
+    const quantity = items.reduce((sum, entry) => sum + (Number(entry.quantity) || 1), 0);
+    const itemTitle = items.length > 1 ? item.name + ' + ' + (items.length - 1) + ' more' : item.name;
+    const kitchenCount = new Set(items.map(entry => entry.kitchen).filter(Boolean)).size;
+    const kitchenTitle = kitchenCount > 1 ? item.kitchen + ' · Multiple kitchens' : item.kitchen;
     return '<article class="hp-menu-order-card">' +
-      '<div class="hp-menu-order-card-head"><div><span>' + safe(order.status || 'Order placed') + '</span><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen || '') + '</small></div><strong>₹' + safe(order.total || 0) + '</strong></div>' +
-      '<div class="hp-menu-order-card-meta"><span>Qty ' + safe(item.quantity || 1) + '</span><span>' + safe(order.paymentMethod || 'Cash on Delivery') + '</span></div>' +
+      '<div class="hp-menu-order-card-head"><div><span>' + safe(order.status || 'Order placed') + '</span><h2>' + safe(itemTitle) + '</h2><small>' + safe(kitchenTitle || '') + '</small></div><strong>₹' + safe(order.total || 0) + '</strong></div>' +
+      '<div class="hp-menu-order-card-meta"><span>' + safe(quantity) + (quantity === 1 ? ' item' : ' items') + '</span><span>' + safe(order.paymentMethod || 'Cash on Delivery') + '</span></div>' +
       '<div class="hp-menu-order-card-address"><b>Deliver to</b><p>' + safe(order.address || '') + '</p></div>' +
       '<footer><span>' + safe(order.id) + '</span><time>' + safe(formatMenuOrderDate(order.createdAt)) + '</time></footer>' +
       '</article>';
@@ -523,20 +546,38 @@
     return buyPage;
   }
 
-  function buyPageItemMarkup(item, quantity) {
+  function checkoutMenuEntries() {
+    if (!buyNowState) return [];
+    const rawEntries = buyNowState.source === 'cart'
+      ? (Array.isArray(buyNowState.items) ? buyNowState.items : [])
+      : [{ id: buyNowState.itemId, quantity: buyNowState.quantity }];
+    return rawEntries.map(entry => {
+      const item = MENU.find(menuItem => menuItem.id === entry.id);
+      if (!item) return null;
+      return {
+        id: item.id,
+        item,
+        quantity: Math.max(1, Math.min(20, Number(entry.quantity) || 1))
+      };
+    }).filter(Boolean);
+  }
+
+  function buyPageItemMarkup(item, quantity, itemId) {
     const image = menuItemImageMarkup(item, 'hp-menu-buy-item-image');
-    return '<section class="hp-menu-buy-item"><div class="hp-menu-buy-item-icon' + (image ? ' has-image' : '') + '">' + (image || menuCartIcon()) + '</div><div class="hp-menu-buy-item-copy"><div><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen) + ' · ' + safe(item.serving) + '</small></div><strong>₹' + safe(item.price * quantity) + '</strong></div><div class="hp-menu-buy-quantity"><span>Quantity</span><div><button type="button" data-menu-buy-quantity="-1" aria-label="Decrease quantity">−</button><b>' + safe(quantity) + '</b><button type="button" data-menu-buy-quantity="1" aria-label="Increase quantity">+</button></div></div></section>';
+    const itemTarget = itemId ? ' data-menu-buy-item-id="' + safe(itemId) + '"' : '';
+    return '<section class="hp-menu-buy-item"><div class="hp-menu-buy-item-icon' + (image ? ' has-image' : '') + '">' + (image || menuCartIcon()) + '</div><div class="hp-menu-buy-item-copy"><div><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen) + ' · ' + safe(item.serving) + '</small></div><strong>₹' + safe(item.price * quantity) + '</strong></div><div class="hp-menu-buy-quantity"><span>Quantity</span><div><button type="button" data-menu-buy-quantity="-1"' + itemTarget + ' aria-label="Decrease quantity">−</button><b>' + safe(quantity) + '</b><button type="button" data-menu-buy-quantity="1"' + itemTarget + ' aria-label="Increase quantity">+</button></div></div></section>';
   }
 
   function renderMenuBuyPage() {
     const buyPage = document.getElementById(BUY_PAGE_ID);
     const content = buyPage && buyPage.querySelector('#hpMenuBuyContent');
-    const item = buyNowState && MENU.find(entry => entry.id === buyNowState.itemId);
-    if (!content || !item) return;
-    const quantity = Math.max(1, Math.min(20, Number(buyNowState.quantity) || 1));
-    buyNowState.quantity = quantity;
+    const entries = checkoutMenuEntries();
+    if (!content || !entries.length) return;
+    const fromCart = buyNowState.source === 'cart';
+    const quantity = entries.reduce((sum, entry) => sum + entry.quantity, 0);
+    if (!fromCart) buyNowState.quantity = entries[0].quantity;
     const address = String(localStorage.getItem('nutritiliousLiveLocation') || '').trim();
-    const itemTotal = item.price * quantity;
+    const itemTotal = entries.reduce((sum, entry) => sum + (entry.item.price * entry.quantity), 0);
     const total = itemTotal + DELIVERY_FEE;
     const contact = {
       contactName: String(buyNowState.contactName || ''),
@@ -549,20 +590,44 @@
     const actionMarkup = address
       ? '<button type="button" class="hp-menu-buy-continue" data-menu-buy-place-order>Place COD order · ₹' + safe(total) + '</button>'
       : '<button type="button" class="hp-menu-buy-continue" data-menu-buy-location>Add delivery location</button>';
+    const itemsMarkup = fromCart
+      ? '<section class="hp-menu-buy-items-card"><div class="hp-menu-buy-section-title"><span>ORDER ITEMS</span><h2>' + safe(quantity) + (quantity === 1 ? ' item' : ' items') + ' in this order</h2></div><div class="hp-menu-buy-items-list">' + entries.map(entry => buyPageItemMarkup(entry.item, entry.quantity, entry.id)).join('') + '</div></section>'
+      : buyPageItemMarkup(entries[0].item, entries[0].quantity, '');
     const contactMarkup = '<section class="hp-menu-buy-contact"><div class="hp-menu-buy-section-title"><span>CONTACT DETAILS</span><h2>Who should receive the order?</h2></div><label>Full name<input type="text" data-menu-buy-field="contactName" maxlength="60" autocomplete="name" placeholder="Enter your name" value="' + safe(contact.contactName) + '"></label><label>Mobile number<div class="hp-menu-buy-phone"><span>+91</span><input type="tel" inputmode="numeric" data-menu-buy-field="contactPhone" maxlength="10" autocomplete="tel" placeholder="10-digit number" value="' + safe(contact.contactPhone) + '"></div></label><label>Delivery note <small>(optional)</small><textarea data-menu-buy-field="instructions" maxlength="120" rows="2" placeholder="Landmark or instructions for delivery">' + safe(contact.instructions) + '</textarea></label></section>';
     const paymentMarkup = '<section class="hp-menu-buy-payment"><div class="hp-menu-buy-section-title"><span>PAYMENT</span><h2>Payment method</h2></div><div class="hp-menu-buy-payment-option"><div class="hp-menu-buy-cash-icon">₹</div><div><strong>Cash on Delivery</strong><span>Pay ₹' + safe(total) + ' when your order arrives</span></div><b>✓</b></div><p>COD is the only payment option available right now.</p></section>';
-    content.innerHTML = buyPageItemMarkup(item, quantity) + deliveryMarkup + contactMarkup + paymentMarkup + '<section class="hp-menu-buy-summary"><h2>Price details</h2><div><span>Item total</span><strong>₹' + safe(itemTotal) + '</strong></div><div><span>Delivery charges</span><strong class="free">FREE</strong></div><div class="total"><span>Total</span><strong>₹' + safe(total) + '</strong></div></section><p class="hp-menu-buy-status" id="hpMenuBuyStatus" role="status" aria-live="polite"></p><div class="hp-menu-buy-footer">' + actionMarkup + '<small>By placing this order, you agree to pay the total in cash at delivery.</small></div>';
+    content.innerHTML = itemsMarkup + deliveryMarkup + contactMarkup + paymentMarkup + '<section class="hp-menu-buy-summary"><h2>Price details</h2><div><span>Item total</span><strong>₹' + safe(itemTotal) + '</strong></div><div><span>Delivery charges</span><strong class="free">FREE</strong></div><div class="total"><span>Total</span><strong>₹' + safe(total) + '</strong></div></section><p class="hp-menu-buy-status" id="hpMenuBuyStatus" role="status" aria-live="polite"></p><div class="hp-menu-buy-footer">' + actionMarkup + '<small>By placing this order, you agree to pay the total in cash at delivery.</small></div>';
   }
 
   function openMenuBuyPage(itemId, categoryKey) {
     const item = MENU.find(entry => entry.id === itemId);
     const page = document.getElementById('page-home');
     if (!item || !page) return;
-    buyNowState = { itemId: item.id, categoryKey: categoryKey || '', quantity: 1, ...loadCheckoutContact() };
+    buyNowState = { source: 'buy-now', itemId: item.id, categoryKey: categoryKey || '', quantity: 1, ...loadCheckoutContact() };
     closeCategoryMenu();
     const buyPage = ensureMenuBuyPage(page);
     const headerTitle = buyPage.querySelector('.hp-menu-buy-header h1');
     if (headerTitle) headerTitle.textContent = 'Review your order';
+    renderMenuBuyPage();
+    buyPage.classList.add('show');
+    buyPage.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('hp-menu-buy-open');
+    const backButton = buyPage.querySelector('[data-menu-buy-close]');
+    if (backButton) backButton.focus({ preventScroll: true });
+  }
+
+  function openMenuCartCheckout() {
+    const cart = loadMenuCart();
+    const page = document.getElementById('page-home');
+    if (!cart.length || !page) return;
+    buyNowState = {
+      source: 'cart',
+      items: cart.map(entry => ({ id: entry.id, quantity: entry.quantity })),
+      categoryKey: '',
+      ...loadCheckoutContact()
+    };
+    const buyPage = ensureMenuBuyPage(page);
+    const headerTitle = buyPage.querySelector('.hp-menu-buy-header h1');
+    if (headerTitle) headerTitle.textContent = 'Checkout';
     renderMenuBuyPage();
     buyPage.classList.add('show');
     buyPage.setAttribute('aria-hidden', 'false');
@@ -583,9 +648,16 @@
     return true;
   }
 
-  function changeBuyNowQuantity(delta) {
+  function changeBuyNowQuantity(delta, itemId) {
     if (!buyNowState) return;
-    buyNowState.quantity = Math.max(1, Math.min(20, buyNowState.quantity + delta));
+    if (buyNowState.source === 'cart') {
+      const entry = buyNowState.items.find(item => item.id === itemId);
+      if (!entry) return;
+      entry.quantity = Math.max(1, Math.min(20, Number(entry.quantity) + delta));
+      saveMenuCart(buyNowState.items);
+    } else {
+      buyNowState.quantity = Math.max(1, Math.min(20, buyNowState.quantity + delta));
+    }
     renderMenuBuyPage();
   }
 
@@ -612,9 +684,9 @@
   }
 
   function placeMenuCodOrder() {
-    const item = buyNowState && MENU.find(entry => entry.id === buyNowState.itemId);
+    const entries = checkoutMenuEntries();
     const address = String(localStorage.getItem('nutritiliousLiveLocation') || '').trim();
-    if (!item || !address) {
+    if (!entries.length || !address) {
       openBuyDeliveryLocation();
       return;
     }
@@ -635,8 +707,7 @@
       return;
     }
 
-    const quantity = Math.max(1, Math.min(20, Number(buyNowState.quantity) || 1));
-    const itemTotal = item.price * quantity;
+    const itemTotal = entries.reduce((sum, entry) => sum + (entry.item.price * entry.quantity), 0);
     const createdAt = new Date().toISOString();
     const order = {
       id: createMenuOrderId(),
@@ -650,15 +721,16 @@
       itemTotal,
       deliveryFee: DELIVERY_FEE,
       total: itemTotal + DELIVERY_FEE,
-      items: [{
-        id: item.id,
-        name: item.name,
-        kitchen: item.kitchen,
-        serving: item.serving,
-        price: item.price,
-        quantity
-      }]
+      items: entries.map(entry => ({
+        id: entry.item.id,
+        name: entry.item.name,
+        kitchen: entry.item.kitchen,
+        serving: entry.item.serving,
+        price: entry.item.price,
+        quantity: entry.quantity
+      }))
     };
+    const fromCart = buyNowState.source === 'cart';
     buyNowState.contactName = contactName;
     buyNowState.contactPhone = contactPhone;
     buyNowState.instructions = instructions;
@@ -666,14 +738,16 @@
     saveMenuOrders([order, ...loadMenuOrders()]);
     localStorage.setItem(buyNowDraftKey(), JSON.stringify({
       orderId: order.id,
-      itemId: item.id,
-      quantity,
+      source: fromCart ? 'cart' : 'buy-now',
+      items: order.items.map(item => ({ id: item.id, quantity: item.quantity })),
       total: order.total,
       address,
       paymentMethod: order.paymentMethod,
       createdAt,
       status: 'placed'
     }));
+    if (fromCart) saveMenuCart([]);
+    buyNowState.orderPlaced = true;
     renderMenuOrderSuccess(order);
   }
 
@@ -685,7 +759,12 @@
   }
 
   function continueMenuOrdering() {
+    const fromCart = buyNowState && buyNowState.source === 'cart';
     closeMenuBuyPage(true);
+    if (fromCart) {
+      const homeButton = document.getElementById('homeBtn');
+      if (homeButton) homeButton.click();
+    }
   }
 
   function handleMenuBuyInput(event) {
@@ -1142,9 +1221,18 @@
       return;
     }
 
+    const cartButton = event.target.closest('#cartBtn');
+    if (cartButton) {
+      renderMenuCart();
+      return;
+    }
+
     const savedAddressButton = event.target.closest('#saveAddress');
-    if (savedAddressButton && buyNowState) {
-      window.requestAnimationFrame(renderMenuBuyPage);
+    if (savedAddressButton) {
+      window.requestAnimationFrame(() => {
+        renderMenuCart();
+        if (buyNowState) renderMenuBuyPage();
+      });
       return;
     }
 
@@ -1168,7 +1256,7 @@
 
     const buyQuantityButton = event.target.closest('[data-menu-buy-quantity]');
     if (buyQuantityButton) {
-      changeBuyNowQuantity(Number(buyQuantityButton.dataset.menuBuyQuantity) || 0);
+      changeBuyNowQuantity(Number(buyQuantityButton.dataset.menuBuyQuantity) || 0, buyQuantityButton.dataset.menuBuyItemId || '');
       return;
     }
 
@@ -1205,6 +1293,25 @@
     const removeButton = event.target.closest('[data-menu-cart-remove]');
     if (removeButton) {
       removeMenuCartItem(removeButton.dataset.menuCartRemove);
+      return;
+    }
+
+    const cartLocationButton = event.target.closest('[data-menu-cart-location]');
+    if (cartLocationButton) {
+      openBuyDeliveryLocation();
+      return;
+    }
+
+    const cartCheckoutButton = event.target.closest('[data-menu-cart-checkout]');
+    if (cartCheckoutButton) {
+      openMenuCartCheckout();
+      return;
+    }
+
+    const cartShopButton = event.target.closest('[data-menu-cart-shop]');
+    if (cartShopButton) {
+      const homeButton = document.getElementById('homeBtn');
+      if (homeButton) homeButton.click();
       return;
     }
 
