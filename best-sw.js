@@ -179,7 +179,7 @@ self.addEventListener('fetch', function (event) {
 
       const patchedResponse = new Response(patchAppShell(html), {
         status: response.status,
-        statusText: response.status.statusText,
+        statusText: response.statusText,
         headers
       });
 
