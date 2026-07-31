@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-31-cart-footer-orders-scroll-v32';
+const PATCH_VERSION = '2026-07-31-cart-mobile-scroll-v33';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const ORDER_SCROLL_PATCH = `
@@ -10,6 +10,7 @@ const ORDER_SCROLL_PATCH = `
     height: 100dvh !important;
     max-height: 100dvh !important;
     overflow: hidden !important;
+    touch-action: pan-y !important;
   }
 
   #page-home #cartPage .notification-screen {
@@ -17,13 +18,17 @@ const ORDER_SCROLL_PATCH = `
     width: 100% !important;
     height: 100dvh !important;
     min-height: 0 !important;
+    max-height: 100dvh !important;
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
     padding: 0 !important;
+    touch-action: pan-y !important;
   }
 
   #page-home #cartPage .notify-head {
+    position: relative !important;
+    z-index: 30 !important;
     height: 68px !important;
     flex: 0 0 68px !important;
     margin: 0 !important;
@@ -33,21 +38,34 @@ const ORDER_SCROLL_PATCH = `
 
   #page-home #cartPage .hp-menu-cart-root {
     width: 100% !important;
-    flex: 1 1 auto !important;
+    height: 0 !important;
+    flex: 1 1 0% !important;
     min-height: 0 !important;
-    display: grid !important;
-    grid-template-rows: minmax(0, 1fr) auto !important;
+    display: flex !important;
+    flex-direction: column !important;
     overflow: hidden !important;
+    touch-action: pan-y !important;
   }
 
   #page-home #cartPage .hp-menu-cart-scroll {
+    position: relative !important;
+    width: 100% !important;
+    height: 0 !important;
+    max-height: none !important;
+    flex: 1 1 0% !important;
     min-height: 0 !important;
+    display: block !important;
     overflow-x: hidden !important;
-    overflow-y: auto !important;
+    overflow-y: scroll !important;
     padding-bottom: 24px !important;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y !important;
+    scrollbar-width: none;
+  }
+
+  #page-home #cartPage .hp-menu-cart-scroll::-webkit-scrollbar {
+    display: none;
   }
 
   #page-home #cartPage .hp-menu-cart-checkout {
@@ -55,8 +73,9 @@ const ORDER_SCROLL_PATCH = `
     left: auto !important;
     right: auto !important;
     bottom: auto !important;
-    z-index: 20 !important;
+    z-index: 40 !important;
     width: 100% !important;
+    flex: 0 0 auto !important;
     margin: 0 !important;
     padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
     background: #fff !important;
@@ -94,11 +113,11 @@ const ORDER_SCROLL_PATCH = `
 
   #page-home #ordersPage .hp-menu-orders-root {
     width: 100% !important;
-    flex: 1 1 auto !important;
+    height: 0 !important;
+    flex: 1 1 0% !important;
     min-height: 0 !important;
-    height: auto !important;
     overflow-x: hidden !important;
-    overflow-y: auto !important;
+    overflow-y: scroll !important;
     padding: 15px 14px calc(24px + env(safe-area-inset-bottom)) !important;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
