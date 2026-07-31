@@ -1,34 +1,39 @@
-@import url("./weekly-services.base.css?v=2026-07-31-cart-mobile-scroll-v33");
+@import url("./weekly-services.base.css?v=2026-07-31-cross-device-scroll-v34");
 
-/* Cart: fixed header/footer with one reliable mobile scroll container. */
-#page-home #cartPage {
+/* Cross-device scrolling: Android, iOS, desktop. */
+#page-home #cartPage,
+#page-home #ordersPage {
   position: fixed !important;
   inset: 0 !important;
   width: 100% !important;
+  height: 100vh !important;
   height: 100dvh !important;
-  max-height: 100dvh !important;
-  overflow: hidden !important;
-  touch-action: pan-y !important;
+  max-height: none !important;
+  overflow: visible !important;
+  touch-action: auto !important;
 }
 
-#page-home #cartPage .notification-screen {
-  position: relative !important;
+#page-home #cartPage .notification-screen,
+#page-home #ordersPage .notification-screen {
   width: 100% !important;
+  height: 100vh !important;
   height: 100dvh !important;
   min-height: 0 !important;
-  max-height: 100dvh !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
+  max-height: none !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  overflow: visible !important;
   padding: 0 !important;
-  touch-action: pan-y !important;
+  touch-action: auto !important;
 }
 
-#page-home #cartPage .notify-head {
+#page-home #cartPage .notify-head,
+#page-home #ordersPage .notify-head {
   position: relative !important;
+  top: auto !important;
   z-index: 30 !important;
   height: 68px !important;
-  flex: 0 0 68px !important;
+  min-height: 68px !important;
   margin: 0 !important;
   padding: max(8px, env(safe-area-inset-top)) 16px 0 !important;
   background: #fff !important;
@@ -36,91 +41,61 @@
 
 #page-home #cartPage .hp-menu-cart-root {
   width: 100% !important;
-  height: 0 !important;
-  flex: 1 1 0% !important;
+  min-width: 0 !important;
   min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-  touch-action: pan-y !important;
+  height: auto !important;
+  display: grid !important;
+  grid-template-rows: minmax(0, 1fr) auto !important;
+  overflow: visible !important;
+  touch-action: auto !important;
 }
 
 #page-home #cartPage .hp-menu-cart-scroll {
   position: relative !important;
   width: 100% !important;
-  height: 0 !important;
-  max-height: none !important;
-  flex: 1 1 0% !important;
+  min-width: 0 !important;
   min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
   display: block !important;
   overflow-x: hidden !important;
-  overflow-y: scroll !important;
+  overflow-y: auto !important;
+  overscroll-behavior: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: auto !important;
   padding-bottom: 24px !important;
-  overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y !important;
   scrollbar-width: none;
 }
 
-#page-home #cartPage .hp-menu-cart-scroll::-webkit-scrollbar {
+#page-home #cartPage .hp-menu-cart-scroll::-webkit-scrollbar,
+#page-home #ordersPage .hp-menu-orders-root::-webkit-scrollbar {
   display: none;
 }
 
 #page-home #cartPage .hp-menu-cart-checkout {
   position: relative !important;
-  left: auto !important;
-  right: auto !important;
-  bottom: auto !important;
+  inset: auto !important;
   z-index: 40 !important;
   width: 100% !important;
-  flex: 0 0 auto !important;
+  min-width: 0 !important;
   margin: 0 !important;
   padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
   background: #fff !important;
-}
-
-/* Orders header stays visible; the orders list is the scroll container. */
-#page-home #ordersPage {
-  position: fixed !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100dvh !important;
-  max-height: 100dvh !important;
-  overflow: hidden !important;
-}
-
-#page-home #ordersPage .notification-screen {
-  width: 100% !important;
-  height: 100dvh !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-  padding: 0 !important;
-}
-
-#page-home #ordersPage .notify-head {
-  position: relative !important;
-  top: auto !important;
-  z-index: 5;
-  height: 68px !important;
-  flex: 0 0 68px !important;
-  margin: 0 !important;
-  padding: max(8px, env(safe-area-inset-top)) 16px 0 !important;
-  background: #fff !important;
+  touch-action: auto !important;
 }
 
 #page-home #ordersPage .hp-menu-orders-root {
   width: 100% !important;
-  height: 0 !important;
-  flex: 1 1 0% !important;
+  min-width: 0 !important;
   min-height: 0 !important;
+  height: auto !important;
   overflow-x: hidden !important;
-  overflow-y: scroll !important;
+  overflow-y: auto !important;
+  overscroll-behavior: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: auto !important;
   padding: 15px 14px calc(24px + env(safe-area-inset-bottom)) !important;
-  overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y !important;
+  scrollbar-width: none;
 }
 
 #page-home #ordersPage .hp-menu-orders-empty {
@@ -128,21 +103,22 @@
   height: auto !important;
 }
 
-/* Review-order page remains independently scrollable. */
 #page-home .hp-menu-buy-page {
   position: fixed !important;
   inset: 0 !important;
   width: 100% !important;
+  height: 100vh !important;
   height: 100dvh !important;
-  max-height: 100dvh !important;
+  max-height: none !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
-  overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y !important;
+  overscroll-behavior: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: auto !important;
 }
 
 #page-home .hp-menu-buy-screen {
+  min-height: 100vh !important;
   min-height: 100dvh !important;
   height: auto !important;
   overflow: visible !important;
@@ -152,4 +128,12 @@
   position: sticky !important;
   top: 0;
   z-index: 5;
+}
+
+/* A stale modal lock must never disable order-flow scrolling. */
+body.scroll-locked:has(#cartPage.show),
+body.scroll-locked:has(#ordersPage.show),
+body.scroll-locked:has(.hp-menu-buy-page.show) {
+  height: auto !important;
+  overflow-y: auto !important;
 }
