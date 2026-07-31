@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-31-fixed-checkout-v36';
+const PATCH_VERSION = '2026-07-31-checkout-alignment-v37';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const NATIVE_SCROLL_PATCH = `
@@ -68,18 +68,41 @@ const NATIVE_SCROLL_PATCH = `
 
   #page-home #cartPage .hp-menu-cart-checkout {
     position: fixed !important;
-    left: 50% !important;
-    right: auto !important;
+    left: 0 !important;
+    right: 0 !important;
     bottom: 0 !important;
-    transform: translateX(-50%) !important;
+    transform: none !important;
     z-index: 999 !important;
     width: 100% !important;
     max-width: 430px !important;
-    margin: 0 !important;
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-columns: 82px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 12px !important;
+    margin: 0 auto !important;
     box-sizing: border-box !important;
     padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
     background: #fff !important;
     box-shadow: 0 -8px 24px rgba(47, 34, 28, .12) !important;
+  }
+
+  #page-home #cartPage .hp-menu-cart-checkout > div,
+  #page-home #cartPage .hp-menu-cart-checkout button {
+    min-width: 0 !important;
+  }
+
+  #page-home #cartPage .hp-menu-cart-checkout button {
+    width: 100% !important;
+  }
+
+  @media (max-width: 360px) {
+    #page-home #cartPage .hp-menu-cart-checkout {
+      grid-template-columns: 72px minmax(0, 1fr) !important;
+      gap: 9px !important;
+      padding-left: 11px !important;
+      padding-right: 11px !important;
+    }
   }
 
   #page-home #ordersPage .hp-menu-orders-root {
