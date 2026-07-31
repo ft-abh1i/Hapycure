@@ -48,6 +48,7 @@
   let observer = null;
   let mountQueued = false;
   let cartToastTimer = null;
+  let pendingCartItemId = '';
   let buyNowState = null;
   let vegOnly = loadVegFilter();
   let catalogUnsubscribe = null;
@@ -332,6 +333,21 @@
     return item;
   }
 
+  function savedDeliveryLocation() {
+    try { return String(localStorage.getItem('nutritiliousLiveLocation') || '').trim(); }
+    catch (error) { return ''; }
+  }
+
+  function addMenuItemWithLocation(itemId) {
+    if (!savedDeliveryLocation()) {
+      pendingCartItemId = itemId;
+      openBuyDeliveryLocation();
+      return null;
+    }
+    pendingCartItemId = '';
+    return addMenuItemToCart(itemId, true);
+  }
+
   function changeMenuCartQuantity(itemId, delta) {
     const cart = loadMenuCart();
     const entry = cart.find(item => item.id === itemId);
@@ -357,15 +373,6 @@
       '<div class="hp-menu-cart-item-copy"><div class="hp-menu-cart-item-head"><div><h2>' + safe(item.name) + '</h2><small>' + safe(item.kitchen) + ' · ' + safe(item.serving) + '</small><span>₹' + safe(item.price) + ' each</span></div><strong>₹' + safe(item.price * entry.quantity) + '</strong></div>' +
       '<div class="hp-menu-cart-item-actions"><button type="button" class="hp-menu-cart-remove" data-menu-cart-remove="' + safe(item.id) + '">Remove</button><div class="hp-menu-cart-quantity" aria-label="Quantity for ' + safe(item.name) + '"><button type="button" data-menu-cart-item="' + safe(item.id) + '" data-menu-cart-change="-1" aria-label="Decrease quantity">−</button><span>' + safe(entry.quantity) + '</span><button type="button" data-menu-cart-item="' + safe(item.id) + '" data-menu-cart-change="1" aria-label="Increase quantity">+</button></div></div></div>' +
       '</article>';
-  }
-
-  function menuCartAddressMarkup() {
-    const address = String(localStorage.getItem('nutritiliousLiveLocation') || '').trim();
-    const icon = '<span class="hp-menu-cart-address-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span>';
-    if (!address) {
-      return '<section class="hp-menu-cart-address missing">' + icon + '<div><span>DELIVERY ADDRESS</span><h2>Add a location to continue</h2><p>We need your address before checkout.</p></div><button type="button" data-menu-cart-location>Add</button></section>';
-    }
-    return '<section class="hp-menu-cart-address">' + icon + '<div><span>DELIVER TO</span><h2>' + safe(address) + '</h2><p>Delivery instructions can be added at checkout.</p></div><button type="button" data-menu-cart-location>Change</button></section>';
   }
 
   function emptyMenuCartMarkup() {
@@ -396,11 +403,8 @@
     }, 0);
     root.innerHTML =
       '<div class="hp-menu-cart-scroll">' +
-        '<div class="hp-menu-cart-overview"><div><span>YOUR ORDER</span><h2>' + safe(count) + (count === 1 ? ' item' : ' items') + ' in your cart</h2></div><b>COD available</b></div>' +
-        menuCartAddressMarkup() +
         '<section class="hp-menu-cart-items-section"><div class="hp-menu-cart-section-head"><h2>Order items</h2><span>' + safe(count) + '</span></div><div class="hp-menu-cart-list">' + cart.map(menuCartItemMarkup).join('') + '</div></section>' +
         '<section class="hp-menu-cart-summary"><h2>Bill details</h2><div><span>Item total</span><strong>₹' + safe(total) + '</strong></div><div><span>Delivery fee</span><strong class="free">FREE</strong></div><div class="total"><span>To pay</span><strong>₹' + safe(total + DELIVERY_FEE) + '</strong></div></section>' +
-        '<div class="hp-menu-cart-trust"><span>✓</span><div><strong>Freshly prepared</strong><small>Your order is prepared after confirmation.</small></div></div>' +
       '</div>' +
       '<footer class="hp-menu-cart-checkout"><div><span>TOTAL</span><strong>₹' + safe(total + DELIVERY_FEE) + '</strong></div><button type="button" data-menu-cart-checkout>Proceed to checkout <span>›</span></button></footer>';
   }
@@ -613,6 +617,7 @@
     document.body.classList.add('hp-menu-buy-open');
     const backButton = buyPage.querySelector('[data-menu-buy-close]');
     if (backButton) backButton.focus({ preventScroll: true });
+    if (!savedDeliveryLocation()) window.requestAnimationFrame(openBuyDeliveryLocation);
   }
 
   function openMenuCartCheckout() {
@@ -634,6 +639,7 @@
     document.body.classList.add('hp-menu-buy-open');
     const backButton = buyPage.querySelector('[data-menu-buy-close]');
     if (backButton) backButton.focus({ preventScroll: true });
+    if (!savedDeliveryLocation()) window.requestAnimationFrame(openBuyDeliveryLocation);
   }
 
   function closeMenuBuyPage(returnToCategory) {
@@ -1215,6 +1221,10 @@
   }
 
   function handleClick(event) {
+    if (event.target.id === 'locationSheet' || event.target.closest('#closeLocation')) {
+      pendingCartItemId = '';
+    }
+
     const ordersButton = event.target.closest('#ordersBtn');
     if (ordersButton) {
       renderMenuOrders();
@@ -1230,6 +1240,11 @@
     const savedAddressButton = event.target.closest('#saveAddress');
     if (savedAddressButton) {
       window.requestAnimationFrame(() => {
+        if (pendingCartItemId && savedDeliveryLocation()) {
+          const itemId = pendingCartItemId;
+          pendingCartItemId = '';
+          addMenuItemToCart(itemId, true);
+        }
         renderMenuCart();
         if (buyNowState) renderMenuBuyPage();
       });
@@ -1238,7 +1253,7 @@
 
     const addToCartButton = event.target.closest('[data-menu-cart-add]');
     if (addToCartButton) {
-      addMenuItemToCart(addToCartButton.dataset.menuCartAdd, true);
+      addMenuItemWithLocation(addToCartButton.dataset.menuCartAdd);
       return;
     }
 
@@ -1293,12 +1308,6 @@
     const removeButton = event.target.closest('[data-menu-cart-remove]');
     if (removeButton) {
       removeMenuCartItem(removeButton.dataset.menuCartRemove);
-      return;
-    }
-
-    const cartLocationButton = event.target.closest('[data-menu-cart-location]');
-    if (cartLocationButton) {
-      openBuyDeliveryLocation();
       return;
     }
 
@@ -1478,7 +1487,11 @@
     }
     document.addEventListener('click', handleClick);
     document.addEventListener('input', handleMenuBuyInput);
-    document.addEventListener('keydown', event => { if (event.key === 'Escape' && !closeMenuBuyPage(true) && !closeCategoryMenu()) closeOverlay(); });
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape') return;
+      pendingCartItemId = '';
+      if (!closeMenuBuyPage(true) && !closeCategoryMenu()) closeOverlay();
+    });
     window.addEventListener('pageshow', queueMount);
   }
 
