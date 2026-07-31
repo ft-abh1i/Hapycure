@@ -48,7 +48,7 @@
 
 #page-home button, #page-home input {font:inherit;outline:0}
 #page-home button {border:0;background:none;cursor:pointer;user-select:none;touch-action:manipulation}
-#page-home .app {max-width:430px;min-height:100vh;margin:auto;background:#fff;padding-bottom:105px}
+#page-home .app {max-width:430px;min-height:100vh;margin:auto;background:#fff;padding-bottom:0}
 #page-home .header {position:sticky;top:0;z-index:50;padding:14px 15px;background:#fff;border-bottom:1px solid #f1f1f1}
 #page-home .top-row, #page-home .search-wrap, #page-home .name-row, #page-home .card-foot, #page-home .section-head, #page-home .notify-head {display:flex;align-items:center}
 #page-home .top-row, #page-home .section-head, #page-home .card-foot {justify-content:space-between}
@@ -109,7 +109,8 @@
 #page-home .unavailable-card.show {display:block}
 #page-home .unavailable-card h3 {font-size:15.5px;font-weight:850}
 #page-home .unavailable-card p {margin-top:6px;color:#8a8a8a;font-size:11.5px;line-height:1.42}
-#page-home .bottom-nav {position:fixed;left:50%;bottom:0;z-index:100;width:100%;max-width:430px;height:78px;display:grid;grid-template-columns:repeat(5,1fr);padding:8px;border-radius:22px 22px 0 0;background:#fff;box-shadow:none;transform:translateX(-50%)}
+#page-home .bottom-nav {position:fixed;left:50%;bottom:0;z-index:100;width:100%;max-width:430px;height:78px;display:grid;grid-template-columns:repeat(5,1fr);padding:8px;border-radius:22px 22px 0 0;background:#fff;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;transform:translateX(-50%)}
+#page-home .bottom-nav::before, #page-home .bottom-nav::after {content:none!important;display:none!important}
 #page-home .nav-item {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#777;font-size:10px;font-weight:700}
 #page-home .nav-item.active {color:#E35336;background:#fdece9;border-radius:16px}
 #page-home .nav-item svg {width:22px;height:22px;stroke-width:2.3}
@@ -305,14 +306,14 @@
   };
 </script>
 
-<link rel="stylesheet" href="./diet-onboarding.css?v=2026-07-29-merchant-images-v24" />
-<link rel="stylesheet" href="./weekly-services.css?v=2026-07-29-merchant-images-v24" />
-<link rel="stylesheet" href="./mess-plans.css?v=2026-07-29-merchant-images-v24" />
-<script src="./diet-onboarding.js?v=2026-07-29-merchant-images-v24" defer></script>
-<script src="./merchant-catalog.js?v=2026-07-29-merchant-images-v24" defer></script>
-<script src="./weekly-services.js?v=2026-07-29-merchant-images-v24" defer></script>
-<script src="./mess-plans.js?v=2026-07-29-merchant-images-v24" defer></script>
-<script src="./ai-diet-api.js?v=2026-07-29-merchant-images-v24" defer></script>
+<link rel="stylesheet" href="./diet-onboarding.css?v=2026-07-31-remove-bottom-fade-v26" />
+<link rel="stylesheet" href="./weekly-services.css?v=2026-07-31-remove-bottom-fade-v26" />
+<link rel="stylesheet" href="./mess-plans.css?v=2026-07-31-remove-bottom-fade-v26" />
+<script src="./diet-onboarding.js?v=2026-07-31-remove-bottom-fade-v26" defer></script>
+<script src="./merchant-catalog.js?v=2026-07-31-remove-bottom-fade-v26" defer></script>
+<script src="./weekly-services.js?v=2026-07-31-remove-bottom-fade-v26" defer></script>
+<script src="./mess-plans.js?v=2026-07-31-remove-bottom-fade-v26" defer></script>
+<script src="./ai-diet-api.js?v=2026-07-31-remove-bottom-fade-v26" defer></script>
 
 <style id="hapycure-home-runtime-styles">
   #page-home {
@@ -327,6 +328,7 @@
     min-height: 0 !important;
     max-height: 100dvh !important;
     overflow: hidden !important;
+    padding-bottom: 0 !important;
   }
 
   #page-home [data-hp-legacy-home="true"],

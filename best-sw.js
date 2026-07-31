@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-31-brand-color-v25';
+const PATCH_VERSION = '2026-07-31-remove-bottom-fade-v26';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const FIREBASE_CONFIG_SCRIPT = `
@@ -37,6 +37,7 @@ const HOME_RUNTIME_PATCH = `
     min-height: 0 !important;
     max-height: 100dvh !important;
     overflow: hidden !important;
+    padding-bottom: 0 !important;
   }
 
   #page-home > .app > main {
