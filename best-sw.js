@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-31-native-cart-scroll-v35';
+const PATCH_VERSION = '2026-07-31-fixed-checkout-v36';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const NATIVE_SCROLL_PATCH = `
@@ -62,19 +62,24 @@ const NATIVE_SCROLL_PATCH = `
     max-height: none !important;
     display: block !important;
     overflow: visible !important;
-    padding-bottom: 16px !important;
+    padding-bottom: calc(108px + env(safe-area-inset-bottom)) !important;
+    scroll-padding-bottom: calc(108px + env(safe-area-inset-bottom));
   }
 
   #page-home #cartPage .hp-menu-cart-checkout {
-    position: sticky !important;
-    left: auto !important;
+    position: fixed !important;
+    left: 50% !important;
     right: auto !important;
     bottom: 0 !important;
-    z-index: 60 !important;
+    transform: translateX(-50%) !important;
+    z-index: 999 !important;
     width: 100% !important;
+    max-width: 430px !important;
     margin: 0 !important;
+    box-sizing: border-box !important;
     padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
     background: #fff !important;
+    box-shadow: 0 -8px 24px rgba(47, 34, 28, .12) !important;
   }
 
   #page-home #ordersPage .hp-menu-orders-root {
