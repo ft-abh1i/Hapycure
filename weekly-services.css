@@ -1298,6 +1298,7 @@ body.hp-category-menu-open {
 
 #page-home .hp-home-dish-card {
   min-width: 0;
+  align-self: start;
   display: flex;
   overflow: hidden;
   flex-direction: column;
@@ -1378,10 +1379,10 @@ body.hp-category-menu-open {
 
 #page-home .hp-home-dish-body {
   min-width: 0;
-  flex: 1;
+  flex: none;
   display: flex;
   flex-direction: column;
-  padding: 11px;
+  padding: 10px;
 }
 
 #page-home .hp-home-dish-body > small {
@@ -1394,10 +1395,10 @@ body.hp-category-menu-open {
 }
 
 #page-home .hp-home-dish-body h3 {
-  min-height: 34px;
+  min-height: 0;
   display: -webkit-box;
   overflow: hidden;
-  margin-top: 5px;
+  margin-top: 3px;
   color: #28211e;
   font-size: 13px;
   line-height: 1.28;
@@ -1411,7 +1412,7 @@ body.hp-category-menu-open {
   align-items: flex-end;
   justify-content: space-between;
   gap: 7px;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 #page-home .hp-home-dish-price strong {
@@ -1431,8 +1432,12 @@ body.hp-category-menu-open {
 }
 
 #page-home .hp-home-dish-meta {
-  min-height: 22px;
-  margin-top: 7px;
+  min-height: 0;
+  margin-top: 5px;
+}
+
+#page-home .hp-home-dish-meta:empty {
+  display: none;
 }
 
 #page-home .hp-home-dish-meta span {
@@ -1450,13 +1455,13 @@ body.hp-category-menu-open {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
-  margin-top: auto;
-  padding-top: 9px;
+  margin-top: 10px;
+  padding-top: 0;
 }
 
 #page-home .hp-home-dish-actions button {
   min-width: 0;
-  min-height: 34px;
+  min-height: 32px;
   padding: 6px 3px;
   border-radius: 10px;
   font-size: 8.5px;
