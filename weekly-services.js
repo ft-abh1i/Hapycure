@@ -392,6 +392,9 @@
       screen.appendChild(root);
     }
     const cart = loadMenuCart();
+    const signature = JSON.stringify({ cart, menuVersion });
+    if (root.dataset.cartSignature === signature) return;
+    root.dataset.cartSignature = signature;
     if (!cart.length) {
       root.innerHTML = emptyMenuCartMarkup();
       return;
