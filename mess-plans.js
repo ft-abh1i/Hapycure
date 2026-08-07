@@ -45,6 +45,28 @@
       .map(([day, item]) => day ? `${day}: ${item}` : item);
   }
 
+  function normalizeRestaurant(restaurant) {
+    const businessName = String(restaurant.name || 'Hapycure Mess').trim();
+    return {
+      id: String(restaurant.__id),
+      restaurantId: String(restaurant.__id),
+      name: businessName,
+      businessName,
+      area: String(restaurant.address || 'Nearby'),
+      rating: 'New',
+      image: String(restaurant.bannerImage || restaurant.image || ''),
+      description: `Mess profile published by ${businessName}.`,
+      foodType: String(restaurant.foodType || 'Mess service'),
+      deliveryTime: 'Plans coming soon',
+      meals: [],
+      sampleMenu: [],
+      features: [],
+      weekly: null,
+      monthly: null,
+      profileOnly: true
+    };
+  }
+
   function normalizePlan(plan, restaurant) {
     const duration = planDuration(plan);
     if (!duration) return null;
@@ -73,7 +95,7 @@
       businessName,
       area: String(restaurant.address || 'Nearby'),
       rating: 'New',
-      image: String(restaurant.image || ''),
+      image: String(restaurant.bannerImage || restaurant.image || ''),
       description: `Published by ${businessName}.`,
       foodType: String(restaurant.foodType || 'Mess service'),
       deliveryTime: deliveryDays || 'Schedule shared by partner',
@@ -85,30 +107,34 @@
         meals.length ? `Meals: ${meals.join(', ')}` : ''
       ].filter(Boolean),
       weekly: duration === 'weekly' ? planData : null,
-      monthly: duration === 'monthly' ? planData : null
+      monthly: duration === 'monthly' ? planData : null,
+      profileOnly: false
     };
   }
 
   function providersFromSnapshot(snapshot) {
-    const restaurants = new Map(
-      (snapshot.restaurants || [])
-        .filter(restaurant =>
-          restaurant.source === 'hapycure-merchant' &&
-          restaurant.service === 'mess' &&
-          restaurant.open !== false &&
-          restaurant.published !== false
-        )
-        .map(restaurant => [restaurant.__id, restaurant])
+    const messRestaurants = (snapshot.restaurants || []).filter(restaurant =>
+      restaurant.source === 'hapycure-merchant' &&
+      restaurant.service === 'mess' &&
+      restaurant.open !== false &&
+      restaurant.published !== false
     );
+    const restaurants = new Map(messRestaurants.map(restaurant => [restaurant.__id, restaurant]));
 
-    return (snapshot.messPlans || [])
+    const planProviders = (snapshot.messPlans || [])
       .filter(plan =>
         plan.source === 'hapycure-merchant' &&
         plan.active !== false &&
         restaurants.has(plan.restaurantId)
       )
       .map(plan => normalizePlan(plan, restaurants.get(plan.restaurantId)))
-      .filter(Boolean)
+      .filter(Boolean);
+    const restaurantsWithPlans = new Set(planProviders.map(provider => provider.restaurantId));
+    const newMessProfiles = messRestaurants
+      .filter(restaurant => !restaurantsWithPlans.has(String(restaurant.__id)))
+      .map(normalizeRestaurant);
+
+    return [...planProviders, ...newMessProfiles]
       .sort((a, b) => a.businessName.localeCompare(b.businessName) || a.name.localeCompare(b.name));
   }
 
@@ -197,18 +223,25 @@
   }
 
   function messCardMarkup(provider) {
-    const prices = availableDurations(provider).map(duration => {
+    const durations = availableDurations(provider);
+    const prices = durations.map(duration => {
       const plan = provider[duration];
       return `<div><small>${duration.toUpperCase()}</small><strong>${safe(priceLabel(plan.price))}</strong></div>`;
     }).join('');
+    const planSummary = durations.length
+      ? `<div class="hp-mess-card-prices">${prices}<b>→</b></div>`
+      : '<div class="hp-mess-card-prices pending"><span><small>MESS PROFILE</small><strong>Plans coming soon</strong></span><b>→</b></div>';
+    const providerMeta = provider.profileOnly
+      ? provider.area
+      : `${provider.businessName} · ${provider.area}`;
 
     return `<button type="button" class="hp-mess-card" data-mess-provider="${safe(provider.id)}" aria-label="View ${safe(provider.name)}">
       <div class="hp-mess-card-media">${imageMarkup(provider, 'hp-mess-card-image')}<span class="hp-mess-open-badge">OPEN</span></div>
       <div class="hp-mess-card-body">
-        <div class="hp-mess-card-title"><div><h2>${safe(provider.name)}</h2><p>${safe(provider.businessName)} · ${safe(provider.area)}</p></div><span class="hp-mess-rating">${safe(provider.rating)}</span></div>
+        <div class="hp-mess-card-title"><div><h2>${safe(provider.name)}</h2><p>${safe(providerMeta)}</p></div><span class="hp-mess-rating">${safe(provider.rating)}</span></div>
         <p class="hp-mess-card-description">${safe(provider.description)}</p>
         <div class="hp-mess-card-tags"><span>${safe(provider.foodType)}</span><span>${safe(provider.deliveryTime)}</span></div>
-        <div class="hp-mess-card-prices">${prices}<b>→</b></div>
+        ${planSummary}
       </div>
     </button>`;
   }
@@ -216,18 +249,18 @@
   function listMarkup() {
     const emptyText = loadError
       ? 'Live mess plans could not be loaded. Check Firestore access and try again.'
-      : 'Plans will appear automatically after a mess partner publishes them.';
+      : 'Mess providers will appear automatically after completing partner onboarding.';
     const body = loading
       ? '<div class="hp-mess-loading"><i></i><p>Loading live mess plans…</p></div>'
       : providers.length
         ? `<div class="hp-mess-list">${providers.map(messCardMarkup).join('')}</div>`
-        : `<div class="hp-mess-empty"><div>🍱</div><h2>No mess plan available</h2><p>${safe(emptyText)}</p><button type="button" data-mess-retry>Try again</button></div>`;
+        : `<div class="hp-mess-empty"><div>🍱</div><h2>No mess provider available</h2><p>${safe(emptyText)}</p><button type="button" data-mess-retry>Try again</button></div>`;
 
     return `<div class="hp-mess-screen">
       ${pageHeader('Mess plans', 'LIVE PARTNER PLANS', 'data-mess-close')}
       <main class="hp-mess-content">
-        <section class="hp-mess-list-hero"><span>REGULAR MEALS, MADE EASY</span><h2>Choose a published plan</h2><p>Every listing below comes directly from a Hapycure mess partner.</p></section>
-        <div class="hp-mess-list-head"><div><h2>Available mess plans</h2><p>${providers.length ? `${providers.length} plan${providers.length === 1 ? '' : 's'} found` : 'Live merchant catalogue'}</p></div></div>
+        <section class="hp-mess-list-hero"><span>REGULAR MEALS, MADE EASY</span><h2>Choose a mess provider</h2><p>Every listing below comes directly from a Hapycure mess partner.</p></section>
+        <div class="hp-mess-list-head"><div><h2>Available mess providers</h2><p>${providers.length ? `${providers.length} listing${providers.length === 1 ? '' : 's'} found` : 'Live merchant catalogue'}</p></div></div>
         ${body}
       </main>
     </div>`;
@@ -251,7 +284,21 @@
   function detailMarkup() {
     const provider = selectedProvider();
     if (!provider) return listMarkup();
-    const plan = provider[selectedDuration] || provider[availableDurations(provider)[0]];
+    const durations = availableDurations(provider);
+    const plan = provider[selectedDuration] || provider[durations[0]];
+    if (!plan) {
+      return `<div class="hp-mess-screen hp-mess-detail-screen">
+        ${pageHeader(provider.name, 'MESS DETAILS', 'data-mess-back-list')}
+        <main class="hp-mess-content">
+          <section class="hp-mess-detail-hero">
+            ${imageMarkup(provider, 'hp-mess-detail-image')}
+            <div class="hp-mess-detail-overlay"><span>${safe(provider.foodType)}</span><h2>${safe(provider.name)}</h2><p>${safe(provider.area)}</p></div>
+          </section>
+          <p class="hp-mess-about">${safe(provider.description)}</p>
+          <div class="hp-mess-empty hp-mess-profile-empty"><div>📅</div><h2>Plans coming soon</h2><p>This mess is onboarded and visible. Weekly or monthly plans will appear here as soon as the partner publishes them.</p></div>
+        </main>
+      </div>`;
+    }
     const savedAddress = localStorage.getItem('nutritiliousLiveLocation') || '';
     const minimum = localDate(new Date());
     const featureSection = provider.features.length
@@ -367,7 +414,7 @@
     const provider = providers.find(item => item.id === providerId);
     if (!provider) return;
     selectedProviderId = providerId;
-    selectedDuration = availableDurations(provider)[0];
+    selectedDuration = availableDurations(provider)[0] || '';
     screen = 'detail';
     render();
   }

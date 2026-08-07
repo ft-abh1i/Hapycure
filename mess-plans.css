@@ -385,6 +385,40 @@ body.hp-mess-open {
   font-size: 14px;
 }
 
+#page-home .hp-mess-card-prices.pending {
+  grid-template-columns: minmax(0, 1fr) 30px;
+}
+
+#page-home .hp-mess-card-prices.pending span {
+  min-width: 0;
+}
+
+#page-home .hp-mess-card-prices.pending small,
+#page-home .hp-mess-card-prices.pending strong {
+  display: block;
+}
+
+#page-home .hp-mess-card-prices.pending small {
+  color: #a0948e;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .6px;
+}
+
+#page-home .hp-mess-card-prices.pending strong {
+  margin-top: 4px;
+  color: #E35336;
+  font-size: 10px;
+  font-weight: 950;
+}
+
+#page-home .hp-mess-profile-empty {
+  margin-top: 14px;
+  border: 1px solid #eee4df;
+  border-radius: 20px;
+  background: #fff;
+}
+
 #page-home .hp-mess-loading,
 #page-home .hp-mess-empty {
   padding: 38px 20px;
