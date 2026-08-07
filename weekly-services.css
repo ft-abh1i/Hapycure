@@ -21,6 +21,15 @@
   touch-action: pan-y;
 }
 
+#page-home #cartPage button,
+#page-home #ordersPage button,
+#page-home #cartPage a,
+#page-home #ordersPage a,
+#page-home #cartPage input,
+#page-home #ordersPage input {
+  touch-action: manipulation !important;
+}
+
 #page-home #cartPage .notification-screen,
 #page-home #ordersPage .notification-screen {
   width: 100% !important;

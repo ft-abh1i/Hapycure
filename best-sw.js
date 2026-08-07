@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-07-31-checkout-alignment-v37';
+const PATCH_VERSION = '2026-08-06-cart-interaction-v38';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const NATIVE_SCROLL_PATCH = `
@@ -21,6 +21,15 @@ const NATIVE_SCROLL_PATCH = `
   #page-home #cartPage *,
   #page-home #ordersPage * {
     touch-action: pan-y;
+  }
+
+  #page-home #cartPage button,
+  #page-home #ordersPage button,
+  #page-home #cartPage a,
+  #page-home #ordersPage a,
+  #page-home #cartPage input,
+  #page-home #ordersPage input {
+    touch-action: manipulation !important;
   }
 
   #page-home #cartPage .notification-screen,
