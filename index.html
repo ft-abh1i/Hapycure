@@ -310,7 +310,7 @@
 <link rel="stylesheet" href="./weekly-services.css?v=2026-08-06-cart-interaction-v38" />
 <link rel="stylesheet" href="./mess-plans.css?v=2026-07-31-remove-bottom-fade-v26" />
 <script src="./diet-onboarding.js?v=2026-07-31-remove-bottom-fade-v26" defer></script>
-<script src="./merchant-catalog.js?v=2026-07-31-remove-bottom-fade-v26" defer></script>
+<script src="./merchant-catalog.js?v=2026-08-07-home-image-preload-v39" defer></script>
 <script src="./weekly-services.js?v=2026-08-06-cart-interaction-v38" defer></script>
 <script src="./mess-plans.js?v=2026-07-31-remove-bottom-fade-v26" defer></script>
 <script src="./ai-diet-api.js?v=2026-07-31-remove-bottom-fade-v26" defer></script>
@@ -781,11 +781,18 @@
         return error && error.message ? error.message : 'Google sign-in failed. Please try again.';
       }
 
-      function completeGoogleSignIn(user) {
+      async function completeGoogleSignIn(user) {
         if (signInCompleted || !user) return;
         signInCompleted = true;
         saveSignedInUser(user);
         sessionStorage.removeItem('nutritiliousGoogleRedirectPending');
+        setBusy(true);
+        setMsg('Preparing your home…', true);
+        try {
+          if (window.HapycureMerchantCatalog?.whenImagesReady) {
+            await window.HapycureMerchantCatalog.whenImagesReady(3500);
+          }
+        } catch (error) {}
         setMsg('Signed in successfully.', true);
         window.history.replaceState({ nutriView: 'home' }, '');
         navigate('home');
@@ -802,7 +809,7 @@
           const provider = new firebase.auth.GoogleAuthProvider();
           provider.setCustomParameters({ prompt: 'select_account' });
           const result = await currentAuth.signInWithPopup(provider);
-          completeGoogleSignIn(result && result.user);
+          await completeGoogleSignIn(result && result.user);
         } catch (error) {
           signInCompleted = false;
           const code = error && error.code ? error.code : '';

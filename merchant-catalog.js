@@ -2,14 +2,78 @@
   'use strict';
 
   const SOURCE = 'hapycure-merchant';
+  const STATIC_IMAGE_URLS = [
+    './hepicure_logo_transparent.png',
+    './assets/categories/breakfast.webp',
+    './assets/categories/lunch.webp',
+    './assets/categories/dinner.webp',
+    './assets/categories/snacks.webp',
+    './assets/categories/beverages.webp',
+    './assets/categories/desserts.webp'
+  ];
   const listeners = new Set();
   const errorListeners = new Set();
+  const imagePromises = new Map();
+  const imageReadyWaiters = new Set();
   let restaurants = [];
   let dishes = [];
   let messPlans = [];
   let unsubscribers = [];
   let started = false;
   let ready = { restaurants: false, dishes: false, messPlans: false };
+
+  function preloadImage(url) {
+    const source = String(url || '').trim();
+    if (!source) return Promise.resolve();
+    if (imagePromises.has(source)) return imagePromises.get(source);
+    const promise = new Promise(resolve => {
+      const image = new Image();
+      const settle = () => resolve(source);
+      image.onload = settle;
+      image.onerror = settle;
+      image.decoding = 'async';
+      image.src = source;
+      if (image.complete) settle();
+    });
+    imagePromises.set(source, promise);
+    return promise;
+  }
+
+  function preloadImages(urls) {
+    return Promise.allSettled(Array.from(new Set(urls || [])).map(preloadImage));
+  }
+
+  function preloadCatalogueImages() {
+    return preloadImages([
+      ...dishes.map(dish => dish.image),
+      ...restaurants.map(restaurant => restaurant.image)
+    ]);
+  }
+
+  function flushImageReadyWaiters() {
+    if (!ready.restaurants || !ready.dishes) return;
+    const currentTasks = Array.from(imagePromises.values());
+    imageReadyWaiters.forEach(done => {
+      Promise.allSettled(currentTasks).then(done);
+    });
+  }
+
+  function whenImagesReady(timeout = 3500) {
+    start();
+    return new Promise(resolve => {
+      let finished = false;
+      const done = () => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        imageReadyWaiters.delete(done);
+        resolve();
+      };
+      const timer = setTimeout(done, Math.max(0, Number(timeout) || 0));
+      imageReadyWaiters.add(done);
+      flushImageReadyWaiters();
+    });
+  }
 
   function firebaseContext() {
     if (!window.firebase?.initializeApp || !window.firebase?.firestore) {
@@ -57,9 +121,11 @@
 
   function notify() {
     const value = snapshot();
+    preloadCatalogueImages();
     listeners.forEach(listener => {
       try { listener(value); } catch (error) { console.error('Merchant catalogue listener failed:', error); }
     });
+    flushImageReadyWaiters();
   }
 
   function notifyError(error, collectionName) {
@@ -190,6 +256,10 @@
     refresh,
     subscribe,
     getSnapshot: snapshot,
-    menuItems
+    menuItems,
+    preloadImages,
+    whenImagesReady
   });
+
+  preloadImages(STATIC_IMAGE_URLS);
 })();
