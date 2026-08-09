@@ -129,6 +129,20 @@ body.hp-mess-open {
   padding: 15px;
 }
 
+/* The legacy home shell hides every direct child of any <main>. Mess plans
+   use their own <main>, so restore only this page's children. */
+#page-home .hp-mess-content > * {
+  display: block !important;
+}
+
+#page-home .hp-mess-content > .hp-mess-list-head {
+  display: flex !important;
+}
+
+#page-home .hp-mess-content > .hp-mess-list {
+  display: grid !important;
+}
+
 #page-home .hp-mess-list-hero {
   position: relative;
   overflow: hidden;
