@@ -124,10 +124,20 @@
     const planProviders = (snapshot.messPlans || [])
       .filter(plan =>
         plan.source === 'hapycure-merchant' &&
-        plan.active !== false &&
-        restaurants.has(plan.restaurantId)
+        plan.active !== false
       )
-      .map(plan => normalizePlan(plan, restaurants.get(plan.restaurantId)))
+      .map(plan => {
+        const restaurantId = String(plan.restaurantId || '');
+        const restaurant = restaurants.get(restaurantId) || {
+          __id: restaurantId,
+          name: 'Hapycure Mess',
+          address: 'Nearby',
+          foodType: 'Mess service',
+          image: '',
+          bannerImage: ''
+        };
+        return normalizePlan(plan, restaurant);
+      })
       .filter(Boolean);
     const restaurantsWithPlans = new Set(planProviders.map(provider => provider.restaurantId));
     const newMessProfiles = messRestaurants
@@ -139,7 +149,7 @@
   }
 
   function applyCatalog(snapshot) {
-    if (!snapshot?.ready?.restaurants || !snapshot?.ready?.messPlans) return;
+    if (!snapshot?.ready?.messPlans) return;
     providers = providersFromSnapshot(snapshot);
     loading = false;
     loadError = false;
@@ -159,7 +169,7 @@
       return;
     }
     catalogUnsubscribe = window.HapycureMerchantCatalog.subscribe(applyCatalog, (error, collectionName) => {
-      if (collectionName !== 'messPlans' && collectionName !== 'setup') return;
+      if (collectionName !== 'restaurants' && collectionName !== 'messPlans' && collectionName !== 'setup') return;
       console.error('Live merchant mess plans unavailable:', error);
       loading = false;
       loadError = true;
