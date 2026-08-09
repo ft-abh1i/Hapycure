@@ -385,7 +385,17 @@
   function render() {
     const page = ensurePage();
     if (!page) return;
-    page.innerHTML = screen === 'detail' ? detailMarkup() : listMarkup();
+    try {
+      page.innerHTML = screen === 'detail' ? detailMarkup() : listMarkup();
+    } catch (error) {
+      console.error('Mess plan page render failed:', error);
+      page.innerHTML = `<div class="hp-mess-screen">
+        ${pageHeader('Mess plans', 'LIVE PARTNER PLANS', 'data-mess-close')}
+        <main class="hp-mess-content">
+          <div class="hp-mess-empty"><div>!</div><h2>Mess plans could not be displayed</h2><p>Refresh the live catalogue and try again.</p><button type="button" data-mess-retry>Try again</button></div>
+        </main>
+      </div>`;
+    }
     page.scrollTop = 0;
   }
 
