@@ -90,6 +90,10 @@
     return snapshot.docs.map(document => ({ __id: document.id, ...document.data() }));
   }
 
+  function adminApproved(item) {
+    return String(item?.approvalStatus || '').trim().toLowerCase() === 'approved';
+  }
+
   function timestampValue(value) {
     if (value && typeof value.toMillis === 'function') return value.toMillis();
     if (value && Number.isFinite(Number(value.seconds))) return Number(value.seconds) * 1000;
@@ -140,7 +144,7 @@
     const unsubscribe = db.collection(collectionName)
       .where('source', '==', SOURCE)
       .onSnapshot(current => {
-        assign(documentData(current));
+        assign(documentData(current).filter(adminApproved));
         ready[collectionName] = true;
         notify();
       }, error => notifyError(error, collectionName));
