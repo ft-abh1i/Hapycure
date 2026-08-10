@@ -246,9 +246,9 @@
       : `${provider.businessName} · ${provider.area}`;
 
     return `<button type="button" class="hp-mess-card" data-mess-provider="${safe(provider.id)}" aria-label="View ${safe(provider.name)}">
-      <div class="hp-mess-card-media">${imageMarkup(provider, 'hp-mess-card-image')}<span class="hp-mess-open-badge">OPEN</span></div>
+      <div class="hp-mess-card-media">${imageMarkup(provider, 'hp-mess-card-image')}</div>
       <div class="hp-mess-card-body">
-        <div class="hp-mess-card-title"><div><h2>${safe(provider.name)}</h2><p>${safe(providerMeta)}</p></div><span class="hp-mess-rating">${safe(provider.rating)}</span></div>
+        <div class="hp-mess-card-title"><div><h2>${safe(provider.name)}</h2><p>${safe(providerMeta)}</p></div></div>
         <p class="hp-mess-card-description">${safe(provider.description)}</p>
         <div class="hp-mess-card-tags"><span>${safe(provider.foodType)}</span><span>${safe(provider.deliveryTime)}</span></div>
         ${planSummary}
