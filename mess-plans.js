@@ -269,7 +269,7 @@
     return `<div class="hp-mess-screen">
       ${pageHeader('Mess plans', 'LIVE PARTNER PLANS', 'data-mess-close')}
       <main class="hp-mess-content">
-        <section class="hp-mess-list-hero"><span>REGULAR MEALS, MADE EASY</span><h2>Choose a mess provider</h2><p>Every listing below comes directly from a Hapycure mess partner.</p></section>
+        <section class="hp-mess-list-hero"><span>REGULAR MEALS, MADE EASY</span><h2>Healthy meals, every day.</h2><p>Choose a trusted mess partner and subscribe to a weekly or monthly meal plan.</p></section>
         <div class="hp-mess-list-head"><div><h2>Available mess providers</h2><p>${providers.length ? `${providers.length} listing${providers.length === 1 ? '' : 's'} found` : 'Live merchant catalogue'}</p></div></div>
         ${body}
       </main>
