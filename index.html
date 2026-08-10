@@ -310,9 +310,9 @@
 <link rel="stylesheet" href="./weekly-services.css?v=2026-08-06-cart-interaction-v38" />
 <link rel="stylesheet" href="./mess-plans.css?v=2026-08-10-action-colors-v53" />
 <script src="./diet-onboarding.js?v=2026-07-31-remove-bottom-fade-v26" defer></script>
-<script src="./merchant-catalog.js?v=2026-08-09-live-mess-v40" defer></script>
+<script src="./merchant-catalog.js?v=2026-08-10-admin-approval-v56" defer></script>
 <script src="./weekly-services.js?v=2026-08-06-cart-interaction-v38" defer></script>
-<script src="./mess-plans.js?v=2026-08-10-action-colors-v53" defer></script>
+<script src="./mess-plans.js?v=2026-08-10-admin-approval-v56" defer></script>
 <script src="./ai-diet-api.js?v=2026-07-31-remove-bottom-fade-v26" defer></script>
 
 <style id="hapycure-home-runtime-styles">
@@ -651,10 +651,10 @@
       return`${(6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))).toFixed(1)} km`;
     }
     function buildFirestoreFoodCards(restaurants,dishes){
-      const restaurantById=new Map(restaurants.filter(restaurant=>restaurant.source==='hapycure-merchant').map(restaurant=>[restaurant.__id,restaurant]));
+      const restaurantById=new Map(restaurants.filter(restaurant=>restaurant.source==='hapycure-merchant'&&String(restaurant.approvalStatus||'').toLowerCase()==='approved').map(restaurant=>[restaurant.__id,restaurant]));
       return dishes.filter(dish=>{
         const restaurant=restaurantById.get(dish.restaurantId);
-        return dish.source==='hapycure-merchant'&&restaurant&&restaurant.service==='food'&&restaurant.open!==false&&restaurant.published!==false&&dish.active!==false&&dish.image;
+        return dish.source==='hapycure-merchant'&&String(dish.approvalStatus||'').toLowerCase()==='approved'&&restaurant&&restaurant.service==='food'&&restaurant.open!==false&&restaurant.published!==false&&dish.active!==false&&dish.image;
       }).map((dish,index)=>{
         const restaurant=restaurantById.get(dish.restaurantId),area=String(restaurant.address||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
         return{name:dish.name||'Food item',kitchenName:restaurant.name||'Hapycure Partner',category:dish.category||restaurant.foodType||'',meal:String(dish.category||'').toLowerCase(),foodType:dish.dietType||restaurant.foodType||'',price:dish.price,rating:'New',time:'Available',distance:merchantDistance(restaurant),area,img:dish.image,order:index+1};
