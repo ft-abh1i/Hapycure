@@ -239,15 +239,15 @@
     const pureVegClass = String(provider.foodType || '').trim().toLowerCase() === 'pure veg'
       ? ' pure-veg'
       : '';
-    const foodType = `<span class="food-type${pureVegClass}">${safe(provider.foodType)}</span>`;
     const planSummary = plan
-      ? `<div class="hp-mess-card-offer">${foodType}<span class="plan-cycle">${duration === 'weekly' ? 'Weekly' : 'Monthly'}</span><strong>${safe(priceLabel(plan.price))}</strong><b>→</b></div>`
-      : `<div class="hp-mess-card-offer pending">${foodType}<span class="plan-cycle">Plans soon</span><b>→</b></div>`;
+      ? `<div class="hp-mess-card-offer"><span>${duration === 'weekly' ? 'Weekly' : 'Monthly'}</span><strong>${safe(priceLabel(plan.price))}</strong><b>→</b></div>`
+      : '<div class="hp-mess-card-offer pending"><span>Plans coming soon</span><b>→</b></div>';
 
     return `<button type="button" class="hp-mess-card" data-mess-provider="${safe(provider.id)}" aria-label="View ${safe(provider.name)}">
       <div class="hp-mess-card-media">${imageMarkup(provider, 'hp-mess-card-image')}</div>
       <div class="hp-mess-card-body">
         <div class="hp-mess-card-title"><div><h2>${safe(provider.name)}</h2></div></div>
+        <div class="hp-mess-card-tags"><span class="${pureVegClass.trim()}">${safe(provider.foodType)}</span></div>
         ${planSummary}
       </div>
     </button>`;
