@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-08-09-live-mess-v41';
+const PATCH_VERSION = '2026-08-10-hero-copy-v42';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const NATIVE_SCROLL_PATCH = `
