@@ -241,16 +241,15 @@
     const planSummary = durations.length
       ? `<div class="hp-mess-card-prices">${prices}<b>→</b></div>`
       : '<div class="hp-mess-card-prices pending"><span><small>MESS PROFILE</small><strong>Plans coming soon</strong></span><b>→</b></div>';
-    const providerMeta = provider.profileOnly
-      ? provider.area
-      : `${provider.businessName} · ${provider.area}`;
+    const pureVegClass = String(provider.foodType || '').trim().toLowerCase() === 'pure veg'
+      ? ' pure-veg'
+      : '';
 
     return `<button type="button" class="hp-mess-card" data-mess-provider="${safe(provider.id)}" aria-label="View ${safe(provider.name)}">
       <div class="hp-mess-card-media">${imageMarkup(provider, 'hp-mess-card-image')}</div>
       <div class="hp-mess-card-body">
-        <div class="hp-mess-card-title"><div><h2>${safe(provider.name)}</h2><p>${safe(providerMeta)}</p></div></div>
-        <p class="hp-mess-card-description">${safe(provider.description)}</p>
-        <div class="hp-mess-card-tags"><span>${safe(provider.foodType)}</span><span>${safe(provider.deliveryTime)}</span></div>
+        <div class="hp-mess-card-title"><div><h2>${safe(provider.name)}</h2></div></div>
+        <div class="hp-mess-card-tags"><span class="${pureVegClass.trim()}">${safe(provider.foodType)}</span><span>${safe(provider.deliveryTime)}</span></div>
         ${planSummary}
       </div>
     </button>`;
