@@ -142,9 +142,9 @@
   function attach(collectionName, assign) {
     const db = firebaseContext();
     const unsubscribe = db.collection(collectionName)
-      .where('source', '==', SOURCE)
+      .where('approvalStatus', '==', 'approved')
       .onSnapshot(current => {
-        assign(documentData(current).filter(adminApproved));
+        assign(documentData(current).filter(item => item.source === SOURCE && adminApproved(item)));
         ready[collectionName] = true;
         notify();
       }, error => notifyError(error, collectionName));
