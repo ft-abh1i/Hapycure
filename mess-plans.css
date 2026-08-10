@@ -70,7 +70,7 @@ body.hp-mess-open {
 }
 
 #page-home .hp-mess-detail-screen {
-  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  padding-bottom: calc(22px + env(safe-area-inset-bottom));
 }
 
 #page-home .hp-mess-header {
@@ -479,7 +479,7 @@ body.hp-mess-open {
 
 #page-home .hp-mess-detail-hero {
   position: relative;
-  height: 205px;
+  height: 190px;
   overflow: hidden;
   border-radius: 24px;
   background: linear-gradient(140deg, #e0ad78, #E35336);
@@ -514,7 +514,7 @@ body.hp-mess-open {
 
 #page-home .hp-mess-detail-overlay h2 {
   margin: 8px 0 0;
-  font-size: 21px;
+  font-size: 22px;
   font-weight: 950;
 }
 
@@ -534,7 +534,7 @@ body.hp-mess-open {
 }
 
 #page-home .hp-mess-section {
-  margin-top: 22px;
+  margin-top: 18px;
 }
 
 #page-home .hp-mess-section-title {
@@ -569,13 +569,17 @@ body.hp-mess-open {
 
 #page-home .hp-mess-plan-tabs {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
   gap: 9px;
 }
 
 #page-home .hp-mess-plan-tabs button {
-  min-height: 94px;
-  padding: 12px;
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 24px;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
   border: 1px solid #e5ddd9;
   border-radius: 19px;
   background: #fff;
@@ -595,16 +599,17 @@ body.hp-mess-open {
   display: block;
 }
 
-#page-home .hp-mess-plan-tabs span {
+#page-home .hp-mess-plan-tabs span b {
+  display: block;
   font-size: 12px;
   font-weight: 950;
 }
 
 #page-home .hp-mess-plan-tabs strong {
-  margin-top: 8px;
   color: #E35336;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 950;
+  white-space: nowrap;
 }
 
 #page-home .hp-mess-plan-tabs small {
@@ -614,12 +619,46 @@ body.hp-mess-open {
   font-weight: 750;
 }
 
-#page-home .hp-mess-plan-info {
-  margin-top: 10px;
-  padding: 14px;
-  border-radius: 20px;
-  background: #2c2623;
+#page-home .hp-mess-plan-tabs i {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #E35336;
   color: #fff;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 950;
+  opacity: 0;
+}
+
+#page-home .hp-mess-plan-tabs button.selected i {
+  opacity: 1;
+}
+
+#page-home .hp-mess-plan-info {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #e8e0dc;
+  border-radius: 20px;
+  background: #fff;
+  color: #2c2421;
+}
+
+#page-home .hp-mess-includes-title > span {
+  display: block;
+  color: #E35336;
+  font-size: 7.5px;
+  font-weight: 950;
+  letter-spacing: .9px;
+}
+
+#page-home .hp-mess-includes-title > h2 {
+  margin: 4px 0 0;
+  color: #2c2421;
+  font-size: 15px;
+  font-weight: 950;
 }
 
 #page-home .hp-mess-plan-price {
@@ -672,40 +711,37 @@ body.hp-mess-open {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 #page-home .hp-mess-info-grid > div {
   min-width: 0;
-  padding: 10px;
+  min-height: 62px;
+  padding: 11px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, .07);
+  background: #f8f5f3;
 }
 
-#page-home .hp-mess-info-grid span,
 #page-home .hp-mess-info-grid strong,
 #page-home .hp-mess-info-grid small {
   display: block;
 }
 
-#page-home .hp-mess-info-grid span {
-  font-size: 16px;
-}
-
 #page-home .hp-mess-info-grid strong {
-  margin-top: 7px;
+  margin-top: 6px;
   overflow: hidden;
+  color: #403631;
   text-overflow: ellipsis;
-  white-space: nowrap;
   font-size: 9px;
+  line-height: 1.35;
   font-weight: 900;
 }
 
 #page-home .hp-mess-info-grid small {
-  margin-top: 4px;
-  color: rgba(255, 255, 255, .5);
+  color: #9a8e88;
   font-size: 7.5px;
-  font-weight: 700;
+  letter-spacing: .5px;
+  font-weight: 900;
 }
 
 #page-home .hp-mess-feature-list,
@@ -866,6 +902,10 @@ body.hp-mess-open {
   color: #fff;
   text-align: left;
   box-shadow: 0 10px 22px rgba(36, 32, 30, .18);
+}
+
+#page-home .hp-mess-book-section .hp-mess-book-button {
+  margin-top: 4px;
 }
 
 #page-home .hp-mess-book-button small,
