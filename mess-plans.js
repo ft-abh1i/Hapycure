@@ -246,8 +246,7 @@
     return `<button type="button" class="hp-mess-card" data-mess-provider="${safe(provider.id)}" aria-label="View ${safe(provider.name)}">
       <div class="hp-mess-card-media">${imageMarkup(provider, 'hp-mess-card-image')}</div>
       <div class="hp-mess-card-body">
-        <div class="hp-mess-card-title"><div><h2>${safe(provider.name)}</h2></div></div>
-        <div class="hp-mess-card-tags"><span class="${pureVegClass.trim()}">${safe(provider.foodType)}</span></div>
+        <div class="hp-mess-card-title"><h2>${safe(provider.name)}</h2><span class="hp-mess-title-food${pureVegClass}">${safe(provider.foodType)}</span></div>
         ${planSummary}
       </div>
     </button>`;
