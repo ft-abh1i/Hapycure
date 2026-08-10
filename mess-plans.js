@@ -277,7 +277,7 @@
       ${availableDurations(provider).map(duration => {
         const plan = provider[duration];
         return `<button type="button" class="${selectedDuration === duration ? 'selected' : ''}" data-mess-duration="${duration}" role="tab" aria-selected="${selectedDuration === duration}">
-          <span>${duration === 'weekly' ? 'Weekly' : 'Monthly'}</span><strong>${safe(priceLabel(plan.price))}</strong><small>${plan.days} days</small>
+          <span><b>${duration === 'weekly' ? 'Weekly plan' : 'Monthly plan'}</b><small>${plan.days} days</small></span><strong>${safe(priceLabel(plan.price))}</strong><i aria-hidden="true">✓</i>
         </button>`;
       }).join('')}
     </div>`;
@@ -294,60 +294,55 @@
     const plan = provider[selectedDuration] || provider[durations[0]];
     if (!plan) {
       return `<div class="hp-mess-screen hp-mess-detail-screen">
-        ${pageHeader(provider.name, 'MESS DETAILS', 'data-mess-back-list')}
+        ${pageHeader('Plan details', 'MESS PLAN', 'data-mess-back-list')}
         <main class="hp-mess-content">
           <section class="hp-mess-detail-hero">
             ${imageMarkup(provider, 'hp-mess-detail-image')}
-            <div class="hp-mess-detail-overlay"><span>${safe(provider.foodType)}</span><h2>${safe(provider.name)}</h2><p>${safe(provider.area)}</p></div>
+            <div class="hp-mess-detail-overlay"><span>${safe(provider.foodType)}</span><h2>${safe(provider.name)}</h2></div>
           </section>
-          <p class="hp-mess-about">${safe(provider.description)}</p>
-          <div class="hp-mess-empty hp-mess-profile-empty"><div>📅</div><h2>Plans coming soon</h2><p>This mess is onboarded and visible. Weekly or monthly plans will appear here as soon as the partner publishes them.</p></div>
+          <div class="hp-mess-empty hp-mess-profile-empty"><div>—</div><h2>Plans coming soon</h2><p>This mess partner has not published a weekly or monthly plan yet.</p></div>
         </main>
       </div>`;
     }
     const savedAddress = localStorage.getItem('nutritiliousLiveLocation') || '';
     const minimum = localDate(new Date());
-    const featureSection = provider.features.length
-      ? `<section class="hp-mess-section"><div class="hp-mess-section-title"><div><span>PLAN DETAILS</span><h2>Published information</h2></div></div><div class="hp-mess-feature-list">${provider.features.map(feature => `<div><i>✓</i><span>${safe(feature)}</span></div>`).join('')}</div></section>`
-      : '';
     const menuSection = provider.sampleMenu.length
-      ? `<section class="hp-mess-section"><div class="hp-mess-section-title"><div><span>PUBLISHED MENU</span><h2>Day-wise items</h2></div></div><div class="hp-mess-menu-list">${provider.sampleMenu.map((item, index) => `<div><b>${index + 1}</b><span>${safe(item)}</span></div>`).join('')}</div></section>`
+      ? `<section class="hp-mess-section"><div class="hp-mess-section-title"><div><span>SAMPLE MENU</span><h2>Day-wise meals</h2></div></div><div class="hp-mess-menu-list">${provider.sampleMenu.map((item, index) => `<div><b>${index + 1}</b><span>${safe(item)}</span></div>`).join('')}</div></section>`
       : '';
     const mealOptions = provider.meals.map(meal => `<option value="${safe(meal)}">${safe(meal)}</option>`).join('');
+    const cycleLabel = selectedDuration === 'monthly' ? 'Monthly' : 'Weekly';
 
     return `<div class="hp-mess-screen hp-mess-detail-screen">
-      ${pageHeader(provider.name, 'MESS DETAILS', 'data-mess-back-list')}
+      ${pageHeader('Plan details', 'MESS PLAN', 'data-mess-back-list')}
       <main class="hp-mess-content">
         <section class="hp-mess-detail-hero">
           ${imageMarkup(provider, 'hp-mess-detail-image')}
-          <div class="hp-mess-detail-overlay"><span>${safe(provider.foodType)}</span><h2>${safe(provider.name)}</h2><p>${safe(provider.businessName)} · ${safe(provider.area)}</p></div>
+          <div class="hp-mess-detail-overlay"><span>${safe(provider.foodType)}</span><h2>${safe(provider.name)}</h2></div>
         </section>
-        <p class="hp-mess-about">${safe(provider.description)}</p>
         <section class="hp-mess-section">
-          <div class="hp-mess-section-title"><div><span>CHOOSE A PLAN</span><h2>Published duration</h2></div></div>
+          <div class="hp-mess-section-title"><div><span>CHOOSE YOUR PLAN</span><h2>Select a duration</h2></div></div>
           <div id="hpMessPlanTabs">${planTabsMarkup(provider)}</div>
         </section>
         <section class="hp-mess-plan-info" id="hpMessPlanInfo">
-          <div class="hp-mess-plan-price"><div><span>${safe(plan.label.toUpperCase())}</span><strong>${safe(priceLabel(plan.price))}</strong></div><b>${plan.days}<small>days</small></b></div>
+          <div class="hp-mess-includes-title"><span>PLAN INCLUDES</span><h2>What you get</h2></div>
           <div class="hp-mess-info-grid">
-            <div><span>🍽️</span><strong>${safe(provider.meals.join(' & ') || 'Partner selection')}</strong><small>Meals available</small></div>
-            <div><span>🛵</span><strong>${safe(provider.deliveryTime)}</strong><small>Delivery schedule</small></div>
+            <div><small>MEALS</small><strong>${safe(provider.meals.join(' & ') || 'Partner selection')}</strong></div>
+            <div><small>SCHEDULE</small><strong>${safe(provider.deliveryTime)}</strong></div>
           </div>
         </section>
-        ${featureSection}
         ${menuSection}
         <section class="hp-mess-section hp-mess-book-section">
-          <div class="hp-mess-section-title"><div><span>BOOK THIS PLAN</span><h2>Delivery details</h2></div></div>
+          <div class="hp-mess-section-title"><div><span>START YOUR PLAN</span><h2>Delivery details</h2></div></div>
           <div class="hp-mess-field-grid">
             <label class="hp-mess-field"><span>START DATE</span><input id="hpMessStartDate" type="date" min="${minimum}" value="${defaultStartDate()}"></label>
             <label class="hp-mess-field"><span>MEAL</span><select id="hpMessMeal">${mealOptions}<option value="Published plan">Published plan</option></select></label>
             <label class="hp-mess-field full"><span>DELIVERY ADDRESS</span><textarea id="hpMessAddress" placeholder="House/flat, street and area">${safe(savedAddress)}</textarea></label>
           </div>
           <p class="hp-mess-message" id="hpMessMessage" role="status" aria-live="polite"></p>
+          <button type="button" class="hp-mess-book-button" data-mess-book><span><small>${safe(cycleLabel)} · ${safe(priceLabel(plan.price))}</small><strong>Book this plan</strong></span><b>→</b></button>
         </section>
-        <p class="hp-mess-note">The amount shown is the merchant-published plan price. Any extra delivery charge will be shown during final payment.</p>
+        <p class="hp-mess-note">Final delivery charges, if any, will be confirmed before payment.</p>
       </main>
-      <footer class="hp-mess-footer"><button type="button" class="hp-mess-book-button" data-mess-book><span><small>${safe(selectedDuration.toUpperCase())} PLAN</small><strong>Book this mess</strong></span><b>→</b></button></footer>
     </div>`;
   }
 
