@@ -360,34 +360,20 @@ body.hp-mess-open {
 
 #page-home .hp-mess-card-offer {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) 26px;
+  grid-template-columns: auto minmax(0, 1fr) 30px;
   align-items: center;
-  gap: 5px;
-  margin-top: 10px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 #page-home .hp-mess-card-offer > span {
-  min-width: 0;
-  padding: 4px 6px;
+  padding: 5px 8px;
   border-radius: 999px;
   background: #fff0ec;
   color: #b94730;
-  font-size: 7.5px;
+  font-size: 8px;
   font-weight: 900;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-#page-home .hp-mess-card-offer > .food-type {
-  background: #f5f1ef;
-  color: #776b65;
-}
-
-#page-home .hp-mess-card-offer > .food-type.pure-veg {
-  border: 1px solid #c9e8cf;
-  background: #eaf7ed;
-  color: #237a3b;
 }
 
 #page-home .hp-mess-card-offer > strong {
@@ -395,14 +381,13 @@ body.hp-mess-open {
   color: #433833;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 950;
-  text-align: right;
 }
 
 #page-home .hp-mess-card-offer > b {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -412,11 +397,13 @@ body.hp-mess-open {
 }
 
 #page-home .hp-mess-card-offer.pending {
-  grid-template-columns: auto minmax(0, 1fr) 26px;
+  grid-template-columns: minmax(0, 1fr) 30px;
 }
 
-#page-home .hp-mess-card-offer.pending > .plan-cycle {
+#page-home .hp-mess-card-offer.pending > span {
+  overflow: hidden;
   color: #8b7f79;
+  text-overflow: ellipsis;
 }
 
 #page-home .hp-mess-profile-empty {
