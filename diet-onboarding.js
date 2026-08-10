@@ -37,6 +37,7 @@
 
   let currentStep = 0;
   let overlay = null;
+  let bypassNextSubscriptionClick = false;
 
   function getUser() {
     try {
@@ -98,6 +99,10 @@
   function handleSubscriptionProfile(event) {
     const subscriptionButton = event.target instanceof Element ? event.target.closest('#subscriptionBtn') : null;
     if (!subscriptionButton || !document.getElementById('page-home')) return;
+    if (bypassNextSubscriptionClick) {
+      bypassNextSubscriptionClick = false;
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
@@ -310,12 +315,14 @@
         </main>
         <footer class="hp-onboarding-footer">
           <button class="hp-back-btn" id="hpBackBtn" type="button">Back</button>
+          <button class="hp-skip-btn" id="hpSkipBtn" type="button">Skip for now</button>
           <button class="hp-next-btn" id="hpNextBtn" type="button"><span>Continue</span><b>→</b></button>
         </footer>
       </div>`;
 
     document.body.appendChild(overlay);
     overlay.querySelector('#hpBackBtn').addEventListener('click', goBack);
+    overlay.querySelector('#hpSkipBtn').addEventListener('click', skipSetup);
     overlay.querySelector('#hpNextBtn').addEventListener('click', goNext);
     overlay.addEventListener('click', handleSelection);
     overlay.addEventListener('input', handleInput);
@@ -643,13 +650,24 @@
     setTimeout(closeOverlay, 650);
   }
 
-  function closeOverlay() {
-    if (!overlay) return;
+  function skipSetup() {
+    collectCurrentStep();
+    const subscriptionButton = document.getElementById('subscriptionBtn');
+    bypassNextSubscriptionClick = Boolean(subscriptionButton);
+    closeOverlay(() => subscriptionButton?.click());
+  }
+
+  function closeOverlay(afterClose) {
+    if (!overlay) {
+      if (typeof afterClose === 'function') afterClose();
+      return;
+    }
     overlay.classList.add('closing');
     setTimeout(() => {
       overlay.remove();
       overlay = null;
       document.body.style.overflow = bodyOverflowBeforeOpen.value;
+      if (typeof afterClose === 'function') afterClose();
     }, 220);
   }
 
