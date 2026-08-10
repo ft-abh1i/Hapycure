@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-08-10-taller-card-image-v44';
+const PATCH_VERSION = '2026-08-10-clean-card-v45';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const NATIVE_SCROLL_PATCH = `
