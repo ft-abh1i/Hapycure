@@ -115,6 +115,7 @@
   function providersFromSnapshot(snapshot) {
     const messRestaurants = (snapshot.restaurants || []).filter(restaurant =>
       restaurant.source === 'hapycure-merchant' &&
+      String(restaurant.approvalStatus || '').toLowerCase() === 'approved' &&
       restaurant.service === 'mess' &&
       restaurant.open !== false &&
       restaurant.published !== false
@@ -124,6 +125,7 @@
     const planProviders = (snapshot.messPlans || [])
       .filter(plan =>
         plan.source === 'hapycure-merchant' &&
+        String(plan.approvalStatus || '').toLowerCase() === 'approved' &&
         plan.active !== false
       )
       .map(plan => {
