@@ -800,20 +800,30 @@ body.hp-mess-open #page-home .location-sheet {
 }
 
 #page-home .hp-mess-book-section {
-  padding: 14px;
+  margin-top: 24px;
+  padding: 18px;
   border: 1px solid #e8e0dc;
-  border-radius: 21px;
+  border-radius: 24px;
   background: #fff;
+  box-shadow: 0 10px 28px rgba(55, 39, 32, .06);
 }
 
 #page-home .hp-mess-book-section .hp-mess-section-title {
-  margin-top: 0;
+  margin: 0 0 16px;
+}
+
+#page-home .hp-mess-book-section .hp-mess-section-title span {
+  font-size: 8.5px;
+}
+
+#page-home .hp-mess-book-section .hp-mess-section-title h2 {
+  font-size: 20px;
 }
 
 #page-home .hp-mess-field-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
 }
 
 #page-home .hp-mess-field {
@@ -826,14 +836,14 @@ body.hp-mess-open #page-home .location-sheet {
 
 #page-home .hp-mess-location-card {
   min-width: 0;
-  min-height: 64px;
+  min-height: 76px;
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  padding: 10px 11px;
+  gap: 12px;
+  padding: 12px;
   border: 1px solid #e5ddd9;
-  border-radius: 15px;
+  border-radius: 17px;
   background: #faf8f7;
 }
 
@@ -842,10 +852,10 @@ body.hp-mess-open #page-home .location-sheet {
 }
 
 #page-home .hp-mess-location-card > svg {
-  width: 34px;
-  height: 34px;
-  padding: 8px;
-  border-radius: 11px;
+  width: 40px;
+  height: 40px;
+  padding: 9px;
+  border-radius: 13px;
   background: #f7e9e6;
   fill: none;
   stroke: #E35336;
@@ -863,27 +873,25 @@ body.hp-mess-open #page-home .location-sheet {
 
 #page-home .hp-mess-location-card small {
   color: #9a8e88;
-  font-size: 7.5px;
+  font-size: 8.5px;
   font-weight: 900;
   letter-spacing: .5px;
 }
 
 #page-home .hp-mess-location-card strong {
   margin-top: 4px;
-  overflow: hidden;
   color: #403631;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 9px;
+  font-size: 11px;
+  line-height: 1.35;
   font-weight: 850;
 }
 
 #page-home .hp-mess-location-card > button {
-  padding: 7px 9px;
-  border-radius: 10px;
+  padding: 9px 11px;
+  border-radius: 11px;
   background: #fff0ec;
   color: #c44931;
-  font-size: 8px;
+  font-size: 9.5px;
   font-weight: 950;
 }
 
@@ -893,9 +901,9 @@ body.hp-mess-open #page-home .location-sheet {
 
 #page-home .hp-mess-field > span {
   display: block;
-  margin: 0 0 6px 3px;
+  margin: 0 0 7px 3px;
   color: #746964;
-  font-size: 8px;
+  font-size: 9.5px;
   font-weight: 900;
 }
 
@@ -903,15 +911,15 @@ body.hp-mess-open #page-home .location-sheet {
 #page-home .hp-mess-field select,
 #page-home .hp-mess-field textarea {
   width: 100%;
-  min-height: 47px;
-  padding: 0 11px;
+  min-height: 56px;
+  padding: 0 14px;
   border: 1px solid #e5ddd9;
-  border-radius: 13px;
+  border-radius: 15px;
   outline: 0;
   background: #faf8f7;
   color: #302824;
   font: inherit;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 750;
 }
 
@@ -931,9 +939,9 @@ body.hp-mess-open #page-home .location-sheet {
 
 #page-home .hp-mess-message {
   min-height: 16px;
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   color: #E35336;
-  font-size: 9px;
+  font-size: 10px;
   text-align: center;
   font-weight: 850;
 }
@@ -941,7 +949,7 @@ body.hp-mess-open #page-home .location-sheet {
 #page-home .hp-mess-note {
   margin: 12px 4px 0;
   color: #958983;
-  font-size: 8px;
+  font-size: 9px;
   line-height: 1.5;
   text-align: center;
   font-weight: 650;
@@ -963,12 +971,12 @@ body.hp-mess-open #page-home .location-sheet {
 
 #page-home .hp-mess-book-button {
   width: 100%;
-  min-height: 54px;
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 15px;
-  border-radius: 17px;
+  padding: 12px 16px;
+  border-radius: 19px;
   background: #24201e;
   color: #fff;
   text-align: left;
@@ -976,7 +984,7 @@ body.hp-mess-open #page-home .location-sheet {
 }
 
 #page-home .hp-mess-book-section .hp-mess-book-button {
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 #page-home .hp-mess-book-button small,
@@ -986,25 +994,25 @@ body.hp-mess-open #page-home .location-sheet {
 
 #page-home .hp-mess-book-button small {
   color: rgba(255, 255, 255, .58);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 750;
 }
 
 #page-home .hp-mess-book-button strong {
-  margin-top: 3px;
-  font-size: 12px;
+  margin-top: 4px;
+  font-size: 14px;
   font-weight: 950;
 }
 
 #page-home .hp-mess-book-button b {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
   border-radius: 50%;
   background: #fff;
   color: #24201e;
-  font-size: 15px;
+  font-size: 17px;
 }
 
 #page-home .hp-mess-success {
