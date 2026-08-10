@@ -352,6 +352,12 @@ body.hp-mess-open {
   font-weight: 800;
 }
 
+#page-home .hp-mess-card-tags span.pure-veg {
+  border: 1px solid #c9e8cf;
+  background: #eaf7ed;
+  color: #237a3b;
+}
+
 #page-home .hp-mess-card-prices {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 30px;
