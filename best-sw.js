@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-08-10-detail-page-v50';
+const PATCH_VERSION = '2026-08-10-home-address-v51';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const NATIVE_SCROLL_PATCH = `
