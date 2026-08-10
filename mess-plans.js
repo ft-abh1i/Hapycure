@@ -336,7 +336,11 @@
           <div class="hp-mess-field-grid">
             <label class="hp-mess-field"><span>START DATE</span><input id="hpMessStartDate" type="date" min="${minimum}" value="${defaultStartDate()}"></label>
             <label class="hp-mess-field"><span>MEAL</span><select id="hpMessMeal">${mealOptions}<option value="Published plan">Published plan</option></select></label>
-            <label class="hp-mess-field full"><span>DELIVERY ADDRESS</span><textarea id="hpMessAddress" placeholder="House/flat, street and area">${safe(savedAddress)}</textarea></label>
+            <div class="hp-mess-location-card full${savedAddress ? '' : ' empty'}">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.1 7-12a7 7 0 10-14 0c0 5.9 7 12 7 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg>
+              <div><small>DELIVER TO</small><strong id="hpMessAddressText">${safe(savedAddress || 'Select location from homepage')}</strong></div>
+              <button type="button" data-mess-change-location>${savedAddress ? 'Change' : 'Add'}</button>
+            </div>
           </div>
           <p class="hp-mess-message" id="hpMessMessage" role="status" aria-live="polite"></p>
           <button type="button" class="hp-mess-book-button" data-mess-book><span><small>${safe(cycleLabel)} · ${safe(priceLabel(plan.price))}</small><strong>Book this plan</strong></span><b>→</b></button>
@@ -440,17 +444,24 @@
     if (!provider?.[duration]) return;
     const date = document.getElementById('hpMessStartDate');
     const meal = document.getElementById('hpMessMeal');
-    const address = document.getElementById('hpMessAddress');
     const formState = {
       date: date && date.value,
-      meal: meal && meal.value,
-      address: address && address.value
+      meal: meal && meal.value
     };
     selectedDuration = duration;
     render();
     if (formState.date) document.getElementById('hpMessStartDate').value = formState.date;
     if (formState.meal) document.getElementById('hpMessMeal').value = formState.meal;
-    if (formState.address) document.getElementById('hpMessAddress').value = formState.address;
+  }
+
+  function syncDeliveryAddress(address) {
+    const value = String(address || localStorage.getItem('nutritiliousLiveLocation') || '').trim();
+    const card = document.querySelector('.hp-mess-location-card');
+    const text = document.getElementById('hpMessAddressText');
+    const button = card && card.querySelector('[data-mess-change-location]');
+    if (text) text.textContent = value || 'Select location from homepage';
+    if (card) card.classList.toggle('empty', !value);
+    if (button) button.textContent = value ? 'Change' : 'Add';
   }
 
   function setMessage(message) {
@@ -464,10 +475,9 @@
     if (!provider || !plan) return;
     const startDate = document.getElementById('hpMessStartDate');
     const meal = document.getElementById('hpMessMeal');
-    const address = document.getElementById('hpMessAddress');
     const startValue = startDate && startDate.value;
     const mealValue = meal && meal.value;
-    const addressValue = address && address.value.trim();
+    const addressValue = String(localStorage.getItem('nutritiliousLiveLocation') || '').trim();
 
     if (!startValue) {
       setMessage('Choose a start date.');
@@ -475,8 +485,9 @@
       return;
     }
     if (!addressValue) {
-      setMessage('Add your complete delivery address.');
-      if (address) address.focus();
+      setMessage('Select your delivery location first.');
+      const locationButton = document.querySelector('[data-mess-change-location]');
+      if (locationButton) locationButton.focus();
       return;
     }
 
@@ -505,7 +516,6 @@
     } catch (error) {}
     bookings.unshift(booking);
     localStorage.setItem(bookingsKey(), JSON.stringify(bookings.slice(0, 20)));
-    localStorage.setItem('nutritiliousLiveLocation', addressValue);
     screen = 'success';
     const page = ensurePage();
     if (page) {
@@ -543,6 +553,10 @@
     if (event.target.closest('[data-mess-close]')) return void close();
     if (event.target.closest('[data-mess-back-list]')) return void backToList();
     if (event.target.closest('[data-mess-retry]')) return void retryLoad();
+    if (event.target.closest('[data-mess-change-location]')) {
+      document.getElementById('locationBtn')?.click();
+      return;
+    }
 
     const provider = event.target.closest('[data-mess-provider]');
     if (provider) return void openProvider(provider.dataset.messProvider);
@@ -562,10 +576,12 @@
     document.addEventListener('click', handleClick);
     document.addEventListener('keydown', event => {
       if (event.key !== 'Escape') return;
+      if (document.getElementById('locationSheet')?.classList.contains('show')) return;
       if (screen === 'detail') backToList();
       else close();
     });
     window.addEventListener('pageshow', queueMount);
+    window.addEventListener('hapycure:location-changed', event => syncDeliveryAddress(event.detail?.address));
     window.HapycureMessPlans = Object.freeze({ open, close });
   }
 
