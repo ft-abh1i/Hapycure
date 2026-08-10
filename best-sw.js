@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-08-10-support-contacts-v54';
+const PATCH_VERSION = '2026-08-10-hidden-support-details-v55';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const NATIVE_SCROLL_PATCH = `
