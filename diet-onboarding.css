@@ -152,9 +152,10 @@
 .hp-form-message.success { color: #267e3e; }
 
 .hp-onboarding-footer { display: flex; gap: 10px; padding: 13px 18px max(15px, env(safe-area-inset-bottom)); border-top: 1px solid #f0e9e6; background: rgba(255, 255, 255, .94); }
-.hp-back-btn, .hp-next-btn { height: 52px; border: 0; border-radius: 17px; font: inherit; font-size: 13px; font-weight: 950; }
-.hp-back-btn { width: 92px; background: #f3efed; color: #4e4542; }
+.hp-back-btn, .hp-skip-btn, .hp-next-btn { height: 52px; border: 0; border-radius: 17px; font: inherit; font-size: 13px; font-weight: 950; }
+.hp-back-btn { width: 82px; background: #f3efed; color: #4e4542; }
 .hp-back-btn[style*="hidden"] { display: none !important; }
+.hp-skip-btn { width: 104px; border: 1px solid #efd7d1; background: #fff7f5; color: #c7462e; }
 .hp-next-btn { flex: 1; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #E35336, #E35336); color: #fff; box-shadow: 0 11px 24px rgba(227, 83, 54, .23); }
 .hp-next-btn b { display: none !important; }
 .hp-next-btn:disabled { opacity: .65; box-shadow: none; }
@@ -175,6 +176,9 @@
   .hp-food-grid, .hp-input-grid { grid-template-columns: 1fr; }
   .hp-food-grid .hp-option-card { min-height: 86px; flex-direction: row; align-items: center; }
   .hp-onboarding-header::before { width: 108px; flex-basis: 108px; }
+  .hp-onboarding-footer { gap: 7px; }
+  .hp-back-btn { width: 64px; }
+  .hp-skip-btn { width: 88px; font-size: 11px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
