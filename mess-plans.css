@@ -977,10 +977,10 @@ body.hp-mess-open #page-home .location-sheet {
   justify-content: space-between;
   padding: 12px 16px;
   border-radius: 19px;
-  background: #24201e;
+  background: #267e3e;
   color: #fff;
   text-align: left;
-  box-shadow: 0 10px 22px rgba(36, 32, 30, .18);
+  box-shadow: 0 10px 22px rgba(38, 126, 62, .24);
 }
 
 #page-home .hp-mess-book-section .hp-mess-book-button {
@@ -1011,7 +1011,7 @@ body.hp-mess-open #page-home .location-sheet {
   place-items: center;
   border-radius: 50%;
   background: #fff;
-  color: #24201e;
+  color: #267e3e;
   font-size: 17px;
 }
 
