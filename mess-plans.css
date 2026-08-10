@@ -2,6 +2,10 @@ body.hp-mess-open {
   overflow: hidden !important;
 }
 
+body.hp-mess-open #page-home .location-sheet {
+  z-index: 900;
+}
+
 #page-home .section.home-categories {
   margin-top: 8px !important;
 }
@@ -818,6 +822,73 @@ body.hp-mess-open {
 
 #page-home .hp-mess-field.full {
   grid-column: 1 / -1;
+}
+
+#page-home .hp-mess-location-card {
+  min-width: 0;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 11px;
+  border: 1px solid #e5ddd9;
+  border-radius: 15px;
+  background: #faf8f7;
+}
+
+#page-home .hp-mess-location-card.full {
+  grid-column: 1 / -1;
+}
+
+#page-home .hp-mess-location-card > svg {
+  width: 34px;
+  height: 34px;
+  padding: 8px;
+  border-radius: 11px;
+  background: #f7e9e6;
+  fill: none;
+  stroke: #E35336;
+  stroke-width: 1.8;
+}
+
+#page-home .hp-mess-location-card > div {
+  min-width: 0;
+}
+
+#page-home .hp-mess-location-card small,
+#page-home .hp-mess-location-card strong {
+  display: block;
+}
+
+#page-home .hp-mess-location-card small {
+  color: #9a8e88;
+  font-size: 7.5px;
+  font-weight: 900;
+  letter-spacing: .5px;
+}
+
+#page-home .hp-mess-location-card strong {
+  margin-top: 4px;
+  overflow: hidden;
+  color: #403631;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+#page-home .hp-mess-location-card > button {
+  padding: 7px 9px;
+  border-radius: 10px;
+  background: #fff0ec;
+  color: #c44931;
+  font-size: 8px;
+  font-weight: 950;
+}
+
+#page-home .hp-mess-location-card.empty {
+  border-style: dashed;
 }
 
 #page-home .hp-mess-field > span {
