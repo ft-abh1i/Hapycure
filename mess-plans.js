@@ -234,13 +234,11 @@
 
   function messCardMarkup(provider) {
     const durations = availableDurations(provider);
-    const prices = durations.map(duration => {
-      const plan = provider[duration];
-      return `<div><small>${duration.toUpperCase()}</small><strong>${safe(priceLabel(plan.price))}</strong></div>`;
-    }).join('');
-    const planSummary = durations.length
-      ? `<div class="hp-mess-card-prices">${prices}<b>→</b></div>`
-      : '<div class="hp-mess-card-prices pending"><span><small>MESS PROFILE</small><strong>Plans coming soon</strong></span><b>→</b></div>';
+    const duration = durations[0];
+    const plan = duration ? provider[duration] : null;
+    const planSummary = plan
+      ? `<div class="hp-mess-card-offer"><span>${duration === 'weekly' ? 'Weekly' : 'Monthly'}</span><strong>${safe(priceLabel(plan.price))}</strong><b>→</b></div>`
+      : '<div class="hp-mess-card-offer pending"><span>Plans coming soon</span><b>→</b></div>';
     const pureVegClass = String(provider.foodType || '').trim().toLowerCase() === 'pure veg'
       ? ' pure-veg'
       : '';
@@ -249,7 +247,7 @@
       <div class="hp-mess-card-media">${imageMarkup(provider, 'hp-mess-card-image')}</div>
       <div class="hp-mess-card-body">
         <div class="hp-mess-card-title"><div><h2>${safe(provider.name)}</h2></div></div>
-        <div class="hp-mess-card-tags"><span class="${pureVegClass.trim()}">${safe(provider.foodType)}</span><span>${safe(provider.deliveryTime)}</span></div>
+        <div class="hp-mess-card-tags"><span class="${pureVegClass.trim()}">${safe(provider.foodType)}</span></div>
         ${planSummary}
       </div>
     </button>`;
