@@ -1,4 +1,4 @@
-const PATCH_VERSION = '2026-08-10-single-card-row-v47';
+const PATCH_VERSION = '2026-08-10-revert-single-row-v48';
 const HTML_CACHE = 'hapycure-shell-' + PATCH_VERSION;
 
 const NATIVE_SCROLL_PATCH = `
